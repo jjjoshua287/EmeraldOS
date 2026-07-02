@@ -1,3 +1,6 @@
+# Workspace
+.vscode/
+
 # Prerequisites
 *.d
 
@@ -35,6 +38,11 @@
 *.i*86
 *.x86_64
 *.hex
+*.EFI
+*.efi
+
+# QEMU
+esp/
 
 # Debug files
 *.dSYM/
