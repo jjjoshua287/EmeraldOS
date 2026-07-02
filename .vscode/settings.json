@@ -1,0 +1,26 @@
+{
+    "C_Cpp.default.cStandard": "c23",
+
+    // Configure the order of elements to match kernel-doc hierarchy
+    "doxdocgen.generic.order": [
+        "brief",
+        "empty",
+        "param",
+        "empty",
+        "return"
+    ],
+
+    // Structure the top block: {name} - {brief description}
+    "doxdocgen.generic.briefTemplate": "{name} - {text}",
+
+    // Format parameters using the '@parameter: description' standard
+    "doxdocgen.generic.paramTemplate": "@{param}: {text}",
+
+    // Format returns using the capitalized 'Return: description' standard
+    "doxdocgen.generic.returnTemplate": "Return: {text}",
+
+    // Clean up unnecessary prefixes and brackets from default Doxygen
+    "doxdocgen.c.firstLine": "/**",
+    "doxdocgen.generic.commentPrefix": " * ",
+    "doxdocgen.c.lastLine": " */"
+}

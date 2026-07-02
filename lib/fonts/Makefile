@@ -1,0 +1,1 @@
+SRCS += lib/fonts/font_8x16.c lib/fonts/fonts.c

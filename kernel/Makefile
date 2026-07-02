@@ -1,0 +1,1 @@
+SRCS += kernel/kernel.c kernel/printk.c

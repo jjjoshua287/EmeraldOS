@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "__clang__=1",
+                "__GNUC__=12",
+                "__same_type(a, b)=__builtin_types_compatible_p(__typeof__(a), __typeof__(b))"
+            ],
+            "cStandard": "c23",
+            "intelliSenseMode": "linux-clang-x64",
+            "compilerArgs": [
+                "-ffreestanding"
+            ]
+        }
+    ],
+    "version": 4
+}
