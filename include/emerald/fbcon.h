@@ -1,9 +1,9 @@
 #ifndef FBCON_H
 #define FBCON_H
 
+#include <emerald/runtime.h>
 #include <emerald/types.h>
 #include <emerald/font.h>
-#include <emerald/efi.h>
 
 struct fbcon {
     int cursorX;

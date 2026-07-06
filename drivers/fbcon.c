@@ -1,8 +1,46 @@
 #include <emerald/fbcon.h>
 
 #define EOF -1
-#define WHITE 0x00FFFFFF
-#define BLACK 0x0
+
+#define WHITE  0x00FFFFFF
+#define BLACK  0x0
+
+#define RED    0x00FF0000
+#define GREEN  0x0000FF00
+#define BLUE   0x000000FF
+#define YELLOW 0x00FFFF00
+
+// draw a pixel
+void draw_pixel(struct screen_info *info, u64 x, u64 y, u32 color)
+{
+        // Prevent drawing outside boundaries
+        if (x >= info->lfb_width || y >= info->lfb_height)
+                return;
+
+        u32 *fb = (u32 *)info->lfb_base;
+        fb[(y * info->lfb_ppsl) + x] = color;
+}
+
+// draw rectangle
+void draw_filled_rect(struct screen_info *info, u64 x, u64 y, u64 w, u64 h, u32 color) {
+    // Check for overflow in coordinates
+    if (x + w < x || y + h < y) return; 
+
+    // Clip the boundaries so they never exceed the screen dimensions
+    u64 end_x = (x + w > info->lfb_width)  ? info->lfb_width  : x + w;
+    u64 end_y = (y + h > info->lfb_height) ? info->lfb_height : y + h;
+
+    // Safety check for starting boundaries
+    if (x >= info->lfb_width || y >= info->lfb_height) return;
+
+    u32 *fb = (u32 *)info->lfb_base;
+    for (u64 row = y; row < end_y; row++) {
+        u64 row_offset = row * info->lfb_ppsl;
+        for (u64 col = x; col < end_x; col++) {
+            fb[row_offset + col] = color;
+        }
+    }
+}
 
 struct fbcon framebuffer_con;
 

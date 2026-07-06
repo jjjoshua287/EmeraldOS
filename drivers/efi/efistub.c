@@ -1,42 +1,11 @@
 #include <emerald/efi.h>
 #include <emerald/string.h>
+#include <emerald/runtime.h>
 
 #include "efistub.h"
 
 efi_graphics_output_protocol_t *gop;
 struct screen_info info;
-
-// draw a pixel
-void draw_pixel(struct screen_info *info, u64 x, u64 y, u32 color)
-{
-        // Prevent drawing outside boundaries
-        if (x >= info->lfb_width || y >= info->lfb_height)
-                return;
-
-        u32 *fb = (u32 *)info->lfb_base;
-        fb[(y * info->lfb_ppsl) + x] = color;
-}
-
-// draw rectangle
-void draw_filled_rect(struct screen_info *info, u64 x, u64 y, u64 w, u64 h, u32 color) {
-    // Check for overflow in coordinates
-    if (x + w < x || y + h < y) return; 
-
-    // Clip the boundaries so they never exceed the screen dimensions
-    u64 end_x = (x + w > info->lfb_width)  ? info->lfb_width  : x + w;
-    u64 end_y = (y + h > info->lfb_height) ? info->lfb_height : y + h;
-
-    // Safety check for starting boundaries
-    if (x >= info->lfb_width || y >= info->lfb_height) return;
-
-    u32 *fb = (u32 *)info->lfb_base;
-    for (u64 row = y; row < end_y; row++) {
-        u64 row_offset = row * info->lfb_ppsl;
-        for (u64 col = x; col < end_x; col++) {
-            fb[row_offset + col] = color;
-        }
-    }
-}
 
 // Locate Graphics Output Protocol
 efi_status_t locate_gop(efi_boot_services_t *gBS)
@@ -65,11 +34,11 @@ efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTable)
         return status;
 }
 
-struct efi_memory_map mem;
+struct hw_memory_map mem;
 
 efi_status_t get_memory_map(efi_boot_services_t *gBS)
 {
-        struct efi_memory_map mmap = { .size = 0, .memoryMap = NULL };
+        struct hw_memory_map mmap = { .size = 0, .memoryMap = NULL };
 	efi_status_t status;
 
 	gBS->GetMemoryMap(&mmap.size, NULL, &mmap.key, &mmap.descriptorSize, &mmap.version);
@@ -80,21 +49,41 @@ efi_status_t get_memory_map(efi_boot_services_t *gBS)
 		return status;
 
 	status = gBS->GetMemoryMap(&mmap.size, mmap.memoryMap, &mmap.key, &mmap.descriptorSize, &mmap.version);
-	if (EFI_ERROR(status))
-		return status;
 
-	memcpy(&mem, &mmap, sizeof(struct efi_memory_map));
-	return EFI_SUCCESS;
+	memcpy(&mem, &mmap, sizeof(struct hw_memory_map));
+	return status;
 }
 
-#include <asm/gdt.h>
+// Handle ExitBootServices()
+efi_status_t handle_exit(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
+{
+        efi_status_t status = SystemTable->BootServices->ExitBootServices(ImageHandle, mem.key);
+        if (status == EFI_SUCCESS)
+                return status;
 
-efi_status_t do_efi_things(efi_system_table_t *SystemTable)
+        status = get_memory_map(SystemTable->BootServices);
+        if (EFI_ERROR(status))
+                return status;
+        
+        status = SystemTable->BootServices->ExitBootServices(ImageHandle, mem.key);
+        return status;
+}
+
+efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
         efi_status_t status = setup_graphics_output_protocol(SystemTable);
-        if (status == EFI_SUCCESS)
-                status = get_memory_map(SystemTable->BootServices);
+        if (EFI_ERROR(status))
+                return status;
+
+        status = get_memory_map(SystemTable->BootServices);
+        if (EFI_ERROR(status))
+                return status;
         
-        return status;
-        // more things should be done in the future as kernel grows.
+        status = handle_exit(ImageHandle, SystemTable);
+        if (EFI_ERROR(status))
+                return status;
+
+        /* Only RuntimeServices exist now. */
+        start_kernel();
+        return EFI_SUCCESS;
 }

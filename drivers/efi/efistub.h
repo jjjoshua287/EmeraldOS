@@ -23,7 +23,7 @@ struct efi_boot_services {
                 u32                   *DescriptorVersion
         );
         efi_status_t (*AllocatePool)(
-                efi_memory_type *PoolType,
+                efi_memory_type PoolType,
                 u64             Size,
                 void            **Buffer
         );

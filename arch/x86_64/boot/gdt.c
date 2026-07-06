@@ -39,6 +39,9 @@ extern void reload_segments(void);
 /* Setup the GDT */
 void setup_gdt(void)
 {
+        /* Disable Interrupts */
+        asm volatile("cli");
+
 	gdt_init();
 
 	struct desc_ptr gdtr = {
