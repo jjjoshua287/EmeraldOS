@@ -104,46 +104,30 @@ typedef struct sys_desc_struct tss_desc;
 struct idt_bits {
 	u16 ist   : 3,
 	    zero  : 5,
-	    type  : 4,
-	    zero1 : 1,
+	    type  : 5,
 	    dpl   : 2,
 	    p     : 1;
 } __packed;
 
 /**
  * struct gate_struct - Hardware format for entries of the Interrupt Descriptor Table
- * @offset_low:  Bits 0..15 of offset
- * @segment:     Segment Selector that typically points to __KERNEL_CS from GDT
- * @bits:        IST index, Type, DPL, and Present Bits. See struct idt_bits for more info.
- * @offset_mid:  Bits 16..31 of offset
- * @offset_high: Bits 32..63 of offset
- * @reserved:    Reserved bits (must be 0)
+ * @offset_low:     Bits 0..15 of offset
+ * @segment:        Segment Selector that typically points to __KERNEL_CS from GDT
+ * @bits:           IST index, Type, DPL, and Present Bits. See struct idt_bits for more info.
+ * @offset_middle:  Bits 16..31 of offset
+ * @offset_high:    Bits 32..63 of offset
+ * @reserved:       Reserved bits (must be 0)
  */
 struct gate_struct {
     	u16 offset_low;
     	u16 segment;
     	struct idt_bits bits;
-    	u16 offset_mid;
+    	u16 offset_middle;
     	u32 offset_high;
     	u32 reserved;
 } __packed;
 
 typedef struct gate_struct gate_desc;
-
-#define G(_vector, _addr, _ist, _type, _dpl, _segment)   \
-    {                                                    \
-        .offset_low  = (u16)(unsigned long)(_addr),      \
-        .segment     = (_segment),                       \
-        .bits        = {                                 \
-            .ist     = (_ist),                           \
-            .type    = (_type),                          \
-            .dpl     = (_dpl),                           \
-            .p       = 1,                                \
-        },                                               \
-        .offset_mid  = (u16)((unsigned long)(_addr) >> 16), \
-        .offset_high = (u16)((unsigned long)(_addr) >> 32), \
-        .reserved    = 0,                                \
-    }
 
 /* Structure for IDT + GDT registers */
 struct desc_ptr {
