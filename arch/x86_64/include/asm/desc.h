@@ -22,6 +22,10 @@ static inline void pack_gate(gate_desc *gate, unsigned type, unsigned long func,
 	gate->offset_high = (u16)(func >> 32);
 }
 
+#define load_gdt(dtr)                           native_load_gdt(dtr)
+#define load_idt(dtr)                           native_load_idt(dtr)
+#define load_tr(tr)                             asm volatile("ltr %0"::"m" (tr))
+
 #define write_gdt_entry(dt, entry, desc, type)  native_write_gdt_entry(dt, entry, desc, type)
 #define write_idt_entry(dt, entry, g)           native_write_idt_entry(dt, entry, g)
 
@@ -66,5 +70,15 @@ static inline void __set_tss_desc(struct desc_struct *d, unsigned entry, struct 
 }
 
 #define set_tss_desc(dt, addr) __set_tss_desc(dt, GDT_ENTRY_TSS, addr)
+
+static inline void native_load_gdt(const struct desc_ptr *dtr)
+{
+        asm volatile("lgdt %0"::"m" (*dtr));
+}
+
+static inline void native_load_idt(const struct desc_ptr *dtr)
+{
+        asm volatile("lidt %0"::"m" (*dtr));
+}
 
 #endif // X86_64_DESC_H
