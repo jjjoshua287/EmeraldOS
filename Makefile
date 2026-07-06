@@ -1,5 +1,6 @@
 CC     = clang
 LINKER = lld-link
+ARCH = x86_64
 
 CFLAGS = -target x86_64-pc-win32 \
          -std=c23 \
@@ -7,6 +8,7 @@ CFLAGS = -target x86_64-pc-win32 \
          -fshort-wchar \
          -mno-red-zone \
          -I $(shell pwd)/include/ \
+		 -I $(shell pwd)/$(ARCH)/include/ \
          -c
 
 LDFLAGS = /subsystem:efi_application \
