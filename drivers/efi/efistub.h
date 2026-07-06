@@ -15,8 +15,18 @@ struct efi_boot_services {
         // Memory Services
         void *AllocatePages;
         void *FreePages;
-        void *GetMemoryMap;
-        void *AllocatePool;
+        efi_status_t (*GetMemoryMap)(
+                u64                   *MemoryMapSize,
+                efi_memory_descriptor *MemoryMap,
+                u64                   *MapKey,
+                u64                   *DescriptorSize,
+                u32                   *DescriptorVersion
+        );
+        efi_status_t (*AllocatePool)(
+                efi_memory_type *PoolType,
+                u64             Size,
+                void            **Buffer
+        );
         void *FreePool;
 
         // Event and Timer Services
@@ -43,7 +53,10 @@ struct efi_boot_services {
         void *StartImage;
         void *Exit;
         void *UnloadImage;
-        void *ExitBootServices;
+        efi_status_t (*ExitBootServices)(
+                efi_handle_t    ImageHandle,
+                u64             MapKey
+        );
 
         // Misc. Services
         void *GetNextMonotonicCount;

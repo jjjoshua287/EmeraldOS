@@ -13,8 +13,27 @@ typedef u64 RETURN_STATUS;
 typedef unsigned long efi_status_t;
 typedef u8 efi_bool_t;
 typedef u16 efi_char16_t;   // UNICODE character
-typedef u64 efi_phys_addr_t;
 typedef void *efi_handle_t;
+
+typedef u64 efi_phys_addr_t;
+typedef u64 efi_virt_addr_t;
+
+typedef enum {
+        EFI_RESERVED_MEMORY_TYPE,
+        EFI_LOADER_DATA,
+        EFI_LOADER_CODE,
+        /* More Types will be added as they're used */
+} efi_memory_type;
+
+typedef struct {
+        u32             Type;
+        efi_phys_addr_t PhysicalStart;
+        efi_virt_addr_t VirtualStart;
+        u64             NumberOfPages;
+        u64             Attribute;
+} efi_memory_descriptor;
+
+#define EFI_MEMORY_DESCRIPTOR_VERSION 1
 
 #define MAX_BIT 0x8000000000000000ULL
 
@@ -59,7 +78,7 @@ typedef struct {
 typedef struct efi_boot_services efi_boot_services_t;
 
 /*
- * Types and definesd for EFI ResetSystem
+ * Types and defines for EFI ResetSystem
  */
 #define EFI_RESET_COLD     0
 #define EFI_RESET_WARM     1
