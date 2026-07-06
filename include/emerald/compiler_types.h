@@ -6,5 +6,6 @@
 #endif
 
 #define __packed __attribute((__packed__))
+#define __aligned(x) __attribute((__aligned__(x)))
 
 #endif
