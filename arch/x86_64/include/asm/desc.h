@@ -5,9 +5,10 @@
 #include <asm/segment.h>
 #include <asm/processor.h>
 
+#include <emerald/types.h>
 #include <emerald/string.h>
 
-static inline void pack_gate(gate_desc *gate, unsigned type, unsigned long func, 
+static inline void pack_gate(gate_desc *gate, unsigned type, u64 func, 
                              unsigned dpl, unsigned ist)
 {
 	gate->offset_low = (u16)func;
@@ -45,7 +46,7 @@ static inline void native_write_gdt_entry(struct desc_struct *gdt, int entry, co
         memcpy(&gdt[entry], desc, size);
 }
 
-static inline void set_sys_descriptor(void *d, unsigned long addr, unsigned type, unsigned size)
+static inline void set_sys_descriptor(void *d, u64 addr, unsigned type, unsigned size)
 {
         struct sys_desc_struct *desc = d;
         memset(desc, 0, sizeof(*desc));
@@ -65,7 +66,7 @@ static inline void __set_tss_desc(struct desc_struct *d, unsigned entry, struct 
         tss_desc tss;
 
         /* TODO: use a variable to limit size of TSS when io bitmap is implemented */
-        set_sys_descriptor(&tss, (unsigned long)addr, DESC_TSS, sizeof(struct x86_hw_tss) - 1);
+        set_sys_descriptor(&tss, (u64)addr, DESC_TSS, sizeof(struct x86_hw_tss) - 1);
         write_gdt_entry(d, entry, &tss, DESC_TSS);
 }
 

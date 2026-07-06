@@ -46,7 +46,7 @@ void setup_gdt(void)
 
 	struct desc_ptr gdtr = {
 		.size = sizeof(gdt) - 1,
-		.addr = (unsigned long long)gdt,
+		.addr = (u64)gdt,
 	};
 	load_gdt(&gdtr);
         reload_segments();

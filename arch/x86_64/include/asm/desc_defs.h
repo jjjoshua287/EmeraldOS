@@ -134,7 +134,7 @@ typedef struct gate_struct gate_desc;
 /* Structure for IDT + GDT registers */
 struct desc_ptr {
 	unsigned short size;
-	unsigned long addr;
+	u64 addr;
 } __packed;
 
 #endif /* !__ASSEMBLER__ */
