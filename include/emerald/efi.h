@@ -19,9 +19,9 @@ typedef u64 efi_phys_addr_t;
 typedef u64 efi_virt_addr_t;
 
 typedef enum {
-        EFI_RESERVED_MEMORY_TYPE,
-        EFI_LOADER_DATA,
-        EFI_LOADER_CODE,
+        EfiReservedMemoryType,
+        EfiLoaderCode,
+        EfiLoaderData,
         /* More Types will be added as they're used */
 } efi_memory_type;
 
