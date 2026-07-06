@@ -188,9 +188,20 @@ struct screen_info {
         u32 lfb_ppsl;
 };
 
+// runtime memory map info obtained during EFI Phase
+struct efi_memory_map {
+        u64 size;
+        efi_memory_descriptor *memoryMap;
+        u64 key;
+        u64 descriptorSize;
+        u32 version;
+};
+
 // TODO: Name things better
 extern struct screen_info info;
+extern struct efi_memory_map mem;
 efi_status_t do_efi_things(struct efi_system_table *SystemTable);
+efi_status_t get_memory_map(efi_boot_services_t *gBS);
 
 void draw_pixel(struct screen_info *info, u64 x, u64 y, u32 color);
 

@@ -1,4 +1,5 @@
 #include <emerald/efi.h>
+#include <emerald/string.h>
 
 #include "efistub.h"
 
@@ -64,13 +65,36 @@ efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTable)
         return status;
 }
 
+struct efi_memory_map mem;
+
+efi_status_t get_memory_map(efi_boot_services_t *gBS)
+{
+        struct efi_memory_map mmap = { .size = 0, .memoryMap = NULL };
+	efi_status_t status;
+
+	gBS->GetMemoryMap(&mmap.size, NULL, &mmap.key, &mmap.descriptorSize, &mmap.version);
+	mmap.size += 2 * mmap.descriptorSize;
+
+	status = gBS->AllocatePool(EfiLoaderData, mmap.size, (void **)&mmap.memoryMap);
+	if (EFI_ERROR(status))
+		return status;
+
+	status = gBS->GetMemoryMap(&mmap.size, mmap.memoryMap, &mmap.key, &mmap.descriptorSize, &mmap.version);
+	if (EFI_ERROR(status))
+		return status;
+
+	memcpy(&mem, &mmap, sizeof(struct efi_memory_map));
+	return EFI_SUCCESS;
+}
+
 #include <asm/gdt.h>
 
 efi_status_t do_efi_things(efi_system_table_t *SystemTable)
 {
         efi_status_t status = setup_graphics_output_protocol(SystemTable);
-        //setup_gdt(); commented out due forgetting to call ExitBootServices()
-
+        if (status == EFI_SUCCESS)
+                status = get_memory_map(SystemTable->BootServices);
+        
         return status;
         // more things should be done in the future as kernel grows.
 }
