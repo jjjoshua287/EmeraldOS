@@ -5,6 +5,53 @@
 #include <emerald/types.h>
 #include <emerald/compiler_types.h>
 
+/* 8 byte GDT Segment Selector */
+struct desc_struct {
+    u16 limit0;
+    u16 base0;
+    u16 base1: 8, type: 4, s: 1, dpl: 2, p: 1;
+    u16 limit1: 4, avl: 1, l: 1, d: 1, g: 1, base2: 8;
+} __packed;
+
+#define GDT_ENTRY_INIT(flags, base, limit)			\
+	{							\
+		.limit0		= ((limit) >>  0) & 0xFFFF,	\
+		.limit1		= ((limit) >> 16) & 0x000F,	\
+		.base0		= ((base)  >>  0) & 0xFFFF,	\
+		.base1		= ((base)  >> 16) & 0x00FF,	\
+		.base2		= ((base)  >> 24) & 0x00FF,	\
+		.type		= ((flags) >>  0) & 0x000F,	\
+		.s		= ((flags) >>  4) & 0x0001,	\
+		.dpl		= ((flags) >>  5) & 0x0003,	\
+		.p		= ((flags) >>  7) & 0x0001,	\
+		.avl		= ((flags) >> 12) & 0x0001,	\
+		.l		= ((flags) >> 13) & 0x0001,	\
+		.d		= ((flags) >> 14) & 0x0001,	\
+		.g		= ((flags) >> 15) & 0x0001,	\
+	}
+
+enum {
+    GATE_INTERRUPT = 0xE,
+    GATE_TRAP = 0xF
+};
+
+enum {
+    DPL_KERNEL = 0,
+    DPL_USER = 3
+};
+
+/* Long Mode Segment Selector for Task State Segment */
+struct sys_desc_struct {
+    u16 limit0;
+    u16 base0;
+    u16 base1: 8, type: 5, dpl: 2, p: 1;
+    u16 limit1: 4, zero: 3, g: 1, base2: 8;
+    u32 base3;
+    u32 reserved;
+} __packed;
+
+typedef struct sys_desc_struct tss_desc;
+
 /**
  * struct idt_bits - Hardware format for IDT gate flags and types.
  * @ist: Interrupt Stack Table index.
@@ -43,16 +90,6 @@ struct gate_struct {
 
 typedef struct gate_struct gate_desc;
 
-enum gate_type {
-    INTERRUPT_GATE = 0xE,
-    TRAP_GATE = 0xF
-};
-
-enum dpl_modes {
-    DPL_KERNEL_MODE = 0,
-    DPL_USER_MODE   = 3
-};
-
 #define G(_vector, _addr, _ist, _type, _dpl, _segment)   \
     {                                                    \
         .offset_low  = (u16)(unsigned long)(_addr),      \
@@ -67,5 +104,11 @@ enum dpl_modes {
         .offset_high = (u16)((unsigned long)(_addr) >> 32), \
         .reserved    = 0,                                \
     }
+
+/* Structure for IDT + GDT registers */
+struct desc_ptr {
+	unsigned short size;
+	unsigned long addr;
+} __packed;
 
 #endif // X86_64_DESC_DEFS_H
