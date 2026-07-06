@@ -24,7 +24,7 @@ static inline void pack_gate(gate_desc *gate, unsigned type, unsigned long func,
 
 #define load_gdt(dtr)                           native_load_gdt(dtr)
 #define load_idt(dtr)                           native_load_idt(dtr)
-#define load_tr(tr)                             asm volatile("ltr %0"::"m" (tr))
+#define load_tr(tr)                             asm volatile("ltr %w0"::"q" ((unsigned short)(tr)))
 
 #define write_gdt_entry(dt, entry, desc, type)  native_write_gdt_entry(dt, entry, desc, type)
 #define write_idt_entry(dt, entry, g)           native_write_idt_entry(dt, entry, g)

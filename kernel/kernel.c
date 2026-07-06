@@ -19,13 +19,27 @@ int kernel_main()
 }
 
 #include <asm/gdt.h>
+#include <asm/segment.h>
 
 // entry point into kernel, ExitBootServices should be called before entering this
 int start_kernel(void)
 {
         setup_gdt();
         init_fbcon(&info);
-        kernel_main();
+        
+        /*
+        printk("Global Descriptor Table:\n");
+        printk("\tNULL Descriptor: Entry 0 of GDT\n");
+        
+        printk("\t__KERNEL_CS: %d\n", __KERNEL_CS);
+        printk("\t__KERNEL_DS: %d\n\n", __KERNEL_DS);
 
+        printk("\t__USER_CS: %d\n", __USER_CS);
+        printk("\t__USER_DS: %d\n\n", __USER_DS);
+        printk("\t__TSS_SEL: %d\n", __TSS_SEL);
+        */
+
+        printk("\v");
+        kernel_main();
         return 0;
 }
