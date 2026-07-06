@@ -5,12 +5,52 @@
 #include <emerald/types.h>
 #include <emerald/compiler_types.h>
 
+/*
+ * Low-Level interface mapping bits in bitfields to names
+*/
+
+/* Flags for non-system Segment Selectors */
+#define _DESC_ACCESSED 		0x0001
+#define _DESC_CODE_READABLE 	0x0002
+#define _DESC_DATA_WRITABLE 	0x0002
+#define _DESC_DATA_GROW_DOWN	0x0004
+#define _DESC_CODE_CONFORMING 	0x0004
+#define _DESC_CODE_EXECUTABLE 	0x0008
+
+/* Common Flags */
+#define _DESC_S 0x0010
+#define _DESC_DPL(dpl) (((dpl) << 5))
+#define _DESC_PRESENT  0x0080
+
+/* Segment selector Flags */
+#define _DESC_LONG_CODE 	0x2000
+#define _DESC_DB		0x4000
+#define _DESC_GRANULARITY_4K 	0x8000
+
+/* System descriptors have a numeric "type" field instead of flags */
+#define _DESC_SYSTEM(type) (type)
+
+/*
+ * High-level flag combinations
+ */
+
+#define _DESC_DATA (_DESC_S | _DESC_PRESENT | _DESC_ACCESSED | _DESC_DATA_WRITABLE)
+#define _DESC_CODE (_DESC_S | _DESC_PRESENT | _DESC_ACCESSED | _DESC_CODE_READABLE | \
+		    _DESC_CODE_EXECUTABLE)
+
+#define DESC_TSS32 (_DESC_SYSTEM(9) | _DESC_PRESENT)
+
+#define DESC_DATA64 (_DESC_DATA | _DESC_GRANULARITY_4K | _DESC_DB)
+#define DESC_CODE64 (_DESC_CODE | _DESC_GRANULARITY_4K | _DESC_LONG_CODE)
+
+#define DESC_USER (_DESC_DPL(3))
+
 /* 8 byte GDT Segment Selector */
 struct desc_struct {
-    u16 limit0;
-    u16 base0;
-    u16 base1: 8, type: 4, s: 1, dpl: 2, p: 1;
-    u16 limit1: 4, avl: 1, l: 1, d: 1, g: 1, base2: 8;
+	u16 limit0;
+	u16 base0;
+	u16 base1: 8, type: 4, s: 1, dpl: 2, p: 1;
+	u16 limit1: 4, avl: 1, l: 1, d: 1, g: 1, base2: 8;
 } __packed;
 
 #define GDT_ENTRY_INIT(flags, base, limit)			\
@@ -31,23 +71,23 @@ struct desc_struct {
 	}
 
 enum {
-    GATE_INTERRUPT = 0xE,
-    GATE_TRAP = 0xF
+	GATE_INTERRUPT = 0xE,
+	GATE_TRAP = 0xF,
 };
 
 enum {
-    DPL_KERNEL = 0,
-    DPL_USER = 3
+	DESC_TSS = 0x9,
+	DESCTYPE_S = 0x10	/* !system */
 };
 
 /* Long Mode Segment Selector for Task State Segment */
 struct sys_desc_struct {
-    u16 limit0;
-    u16 base0;
-    u16 base1: 8, type: 5, dpl: 2, p: 1;
-    u16 limit1: 4, zero: 3, g: 1, base2: 8;
-    u32 base3;
-    u32 reserved;
+	u16 limit0;
+	u16 base0;
+	u16 base1: 8, type: 5, dpl: 2, p: 1;
+	u16 limit1: 4, zero: 3, g: 1, base2: 8;
+	u32 base3;
+	u32 reserved;
 } __packed;
 
 typedef struct sys_desc_struct tss_desc;
@@ -80,12 +120,12 @@ struct idt_bits {
  * @reserved:    Reserved bits (must be 0)
  */
 struct gate_struct {
-    u16 offset_low;
-    u16 segment;
-    struct idt_bits bits;
-    u16 offset_mid;
-    u32 offset_high;
-    u32 reserved;
+    	u16 offset_low;
+    	u16 segment;
+    	struct idt_bits bits;
+    	u16 offset_mid;
+    	u32 offset_high;
+    	u32 reserved;
 } __packed;
 
 typedef struct gate_struct gate_desc;
