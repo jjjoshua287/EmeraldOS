@@ -64,8 +64,13 @@ efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTable)
         return status;
 }
 
+#include <asm/gdt.h>
+
 efi_status_t do_efi_things(efi_system_table_t *SystemTable)
 {
-        return setup_graphics_output_protocol(SystemTable);
+        efi_status_t status = setup_graphics_output_protocol(SystemTable);
+        //setup_gdt(); commented out due forgetting to call ExitBootServices()
+
+        return status;
         // more things should be done in the future as kernel grows.
 }

@@ -33,6 +33,9 @@ void gdt_init(void)
 	tss_init();
 }
 
+/* Assembly stub to reload segment selectors. */
+extern void reload_segments(void);
+
 /* Setup the GDT */
 void setup_gdt(void)
 {
@@ -40,8 +43,10 @@ void setup_gdt(void)
 
 	struct desc_ptr gdtr = {
 		.size = sizeof(gdt) - 1,
-		.addr = (unsigned long)gdt,
+		.addr = (unsigned long long)gdt,
 	};
 	load_gdt(&gdtr);
-	load_tr(__TSS_SEL);
+        reload_segments();
+        int tss_seg = __TSS_SEL;
+	load_tr(tss_seg);
 }

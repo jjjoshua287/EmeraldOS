@@ -2,9 +2,6 @@
 #ifndef X86_64_DESC_DEFS_H
 #define X86_64_DESC_DEFS_H
 
-#include <emerald/types.h>
-#include <emerald/compiler_types.h>
-
 /*
  * Low-Level interface mapping bits in bitfields to names
 */
@@ -44,6 +41,11 @@
 #define DESC_CODE64 (_DESC_CODE | _DESC_GRANULARITY_4K | _DESC_LONG_CODE)
 
 #define DESC_USER (_DESC_DPL(3))
+
+#ifndef __ASSEMBLER__
+
+#include <emerald/types.h>
+#include <emerald/compiler_types.h>
 
 /* 8 byte GDT Segment Selector */
 struct desc_struct {
@@ -134,5 +136,7 @@ struct desc_ptr {
 	unsigned short size;
 	unsigned long addr;
 } __packed;
+
+#endif /* !__ASSEMBLER__ */
 
 #endif // X86_64_DESC_DEFS_H
