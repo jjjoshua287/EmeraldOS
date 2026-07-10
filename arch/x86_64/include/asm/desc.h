@@ -8,6 +8,8 @@
 #include <emerald/types.h>
 #include <emerald/string.h>
 
+/* functions for making hardware descriptors */
+
 static inline void pack_gate(gate_desc *gate, unsigned type, u64 func, 
                              unsigned dpl, unsigned ist)
 {
@@ -72,14 +74,14 @@ static inline void __set_tss_desc(struct desc_struct *d, unsigned entry, struct 
 
 #define set_tss_desc(dt, addr) __set_tss_desc(dt, GDT_ENTRY_TSS, addr)
 
-static inline void native_load_gdt(const struct desc_ptr *dtr)
+static inline void native_load_gdt(const struct desc_ptr *gdtr)
 {
-        asm volatile("lgdt %0"::"m" (*dtr));
+        asm volatile("lgdt %0"::"m" (*gdtr));
 }
 
-static inline void native_load_idt(const struct desc_ptr *dtr)
+static inline void native_load_idt(const struct desc_ptr *idtr)
 {
-        asm volatile("lidt %0"::"m" (*dtr));
+        asm volatile("lidt %0"::"m" (*idtr));
 }
 
 #endif // X86_64_DESC_H

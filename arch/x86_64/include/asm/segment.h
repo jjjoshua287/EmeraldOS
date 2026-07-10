@@ -37,4 +37,7 @@
 #define __USER_DS           ((GDT_ENTRY_USER_DS << 3) | 3)
 #define __TSS_SEL           (GDT_ENTRY_TSS << 3)
 
+/* Number of entries in Interrupt Descriptor Table */
+#define IDT_ENTRIES 256
+
 #endif //X86_64_SEGMENT_H
