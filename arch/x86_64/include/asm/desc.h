@@ -84,4 +84,29 @@ static inline void native_load_idt(const struct desc_ptr *idtr)
         asm volatile("lidt %0"::"m" (*idtr));
 }
 
+static inline void init_idt_data(struct idt_data *data, unsigned int v, const void *addr)
+{
+        if (v > 0xFF)
+                return; /* TODO: Panic instead of returning */
+        memset(data, 0, sizeof(*data));
+        data->vector    = v;
+        data->addr      = addr;
+        data->segment   = __KERNEL_CS;
+        data->bits.type = GATE_INTERRUPT;
+        data->bits.p    = 1;
+}
+
+static inline void init_idt_desc(gate_desc *gate, const struct idt_data *d)
+{
+        /* convert const void* to a raw integer */
+        u64 addr = (u64)d->addr;
+        
+        gate->offset_low        = (u16)addr;
+        gate->segment           = (u16)d->segment;
+        gate->bits              = d->bits;
+        gate->offset_middle     = (u16)(addr >> 16);
+        gate->offset_high       = (u32)(addr >> 32);
+        gate->reserved          = 0;
+}
+
 #endif // X86_64_DESC_H
