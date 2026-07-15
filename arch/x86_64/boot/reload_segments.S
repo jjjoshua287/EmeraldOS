@@ -1,11 +1,9 @@
 #include <asm/segment.h>
 
-.global reload_segments
-.text
-
 .set KERNEL_CS, __KERNEL_CS
 .set KERNEL_DS, __KERNEL_DS
 
+.global reload_segments
 reload_segments:
     /* Reload the data/stack segments */
     mov $KERNEL_DS, %ax

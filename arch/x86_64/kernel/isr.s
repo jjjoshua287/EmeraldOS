@@ -1,3 +1,4 @@
+.section .text
 extern do_interrupt_handler
 
 /* shared logic between all exception handlers */
@@ -25,7 +26,7 @@ isr_wrapper:
     call do_interrupt_handler
     add $40, %rsp   /* restore rsp */
 
-    /* pop registers
+    /* pop registers */
     pop %r15
     pop %r14
     pop %r13
@@ -73,5 +74,20 @@ isr_stub_\vec:
 .rept 224
     ISR_NOERR %vec
     .set vec, vec+1
+.endr
+.noaltmacro
+
+.section rodata
+.global isr_stub_table
+isr_stub_table:
+.irp vec, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
+    .quad isr_stub_\vec
+.endr
+
+.altmacro
+.set vec, 32
+.rept 224
+    .quad isr_stub_%vec
+    vec = vec + 1
 .endr
 .noaltmacro
