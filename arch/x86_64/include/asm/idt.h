@@ -5,9 +5,6 @@
 #include <asm/desc_defs.h>
 #include <asm/desc.h>
 
-/* holds things for the Interrupt Descriptor Table */
-extern void *isr_stub_table[IDT_ENTRIES];
-
 static inline void invalidate_idt()
 {
     struct desc_ptr idt = {

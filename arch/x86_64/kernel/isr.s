@@ -1,4 +1,3 @@
-.section .text
 extern do_interrupt_handler
 
 /* shared logic between all exception handlers */
@@ -47,47 +46,49 @@ isr_wrapper:
     add $16, %rsp
     iretq
 
-.macro ISR_NOERR vec
-.global isr_stub_\vec
-isr_stub_\vec:
+.macro ISR_NOERR name, vec
+.global asm_isr_\name
+asm_isr_\name:
     push $0     /* dummy error code */
     push $\vec
     jmp isr_wrapper
 .endm
 
-.macro ISR_ERR vec
-.global istr_stub_\vec
+.macro ISR_ERR name, vec
+.global asm_isr_\name
     push $\vec
     jmp isr_wrapper
 .endm
 
-.irp vec, 8, 10, 11, 12, 13, 14, 17, 21, 29, 30
-    ISR_ERR \vec
-.endr
-
-.irp vec, 0, 1, 2, 3, 4, 5, 6, 7, 9, 15, 16, 18, 19, 20, 22, 23, 24, 25, 26, 27, 28, 31
-    ISR_NOERR \vec
-.endr
-
 .altmacro
 .set vec, 32
 .rept 224
-    ISR_NOERR %vec
+    ISR_NOERR asm_irq%vec, %vec
     .set vec, vec+1
 .endr
 .noaltmacro
 
-.section rodata
-.global isr_stub_table
-isr_stub_table:
-.irp vec, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-    .quad isr_stub_\vec
-.endr
-
-.altmacro
-.set vec, 32
-.rept 224
-    .quad isr_stub_%vec
-    vec = vec + 1
-.endr
-.noaltmacro
+ISR_NOERR divide_error,          0
+ISR_NOERR debug,                 1
+ISR_NOERR nmi,                   2
+ISR_NOERR breakpoint,            3
+ISR_NOERR overflow,              4
+ISR_NOERR bound_range,           5
+ISR_NOERR invalid_opcode,        6
+ISR_NOERR device_not_available,  7
+ISR_ERR   double_fault,          8
+ISR_NOERR coprocessor_segment,   9
+ISR_ERR   invalid_tss,          10
+ISR_ERR   segment_not_present,  11
+ISR_ERR   stack_segment,        12
+ISR_ERR   general_protection,   13
+ISR_ERR   page_fault,           14
+ISR_NOERR x87_fpe,              16
+ISR_ERR   alignment_check,      17
+ISR_NOERR machine_check,        18
+ISR_NOERR simd_fpe,             19
+ISR_NOERR virtualization,       20
+ISR_ERR   control_protection,   21
+ISR_NOERR hypervisor_injection, 28
+ISR_ERR   vmm_comms_exception,  29
+ISR_ERR   security_exception,   30
