@@ -1,1 +1,1 @@
-SRCS += kernel/kernel.c kernel/printk.c
+SRCS += kernel/kernel.c kernel/printk.c kernel/panic.c
