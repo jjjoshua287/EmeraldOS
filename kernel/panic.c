@@ -8,20 +8,15 @@
 static bool panicking = false;
 
 /* Restart kernel by loading invalid IDT and triggering a Divide By Zero fault */
-[[noreturn]] emergency_restart()
+[[noreturn]] void emergency_restart()
 {
         /* Intentionally cause a Triple Fault to restart CPU */
         invalidate_idt();
         int x = 1 / 0;
 }
 
-void halt_cpu()
-{
-
-}
-
 /* prints an error message and registers if non-NULL. Halts PC */
-[[noreturn]] panic(const char *msg, struct hw_regs *regs)
+[[noreturn]] void panic(const char *msg, struct hw_regs *regs)
 {
         /* Prevent recursive calls to panic() */
         if (panicking)

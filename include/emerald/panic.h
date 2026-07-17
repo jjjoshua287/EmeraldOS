@@ -3,6 +3,6 @@
 
 #include <asm/processor.h>
 
-[[noreturn]] panic(const char *msg, struct hw_regs *regs);
+[[noreturn]] void panic(const char *msg, struct hw_regs *regs);
 
 #endif
