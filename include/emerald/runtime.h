@@ -15,6 +15,7 @@ struct screen_info {
         u32 lfb_width;
         u32 lfb_height;
         u32 lfb_ppsl;
+        size_t lfb_size;
 };
 
 // runtime memory map info obtained during EFI Phase

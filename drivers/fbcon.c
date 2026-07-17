@@ -1,17 +1,16 @@
 #include <emerald/fbcon.h>
+#include <emerald/string.h>
 
 #define EOF -1
 
-#define WHITE  0x00FFFFFF
-#define BLACK  0x0
-
-#define RED    0x00FF0000
-#define GREEN  0x0000FF00
-#define BLUE   0x000000FF
-#define YELLOW 0x00FFFF00
+void clear_framebuffer(struct screen_info *info)
+{
+        void *fb = (void *)info->lfb_base;
+        memset(fb, 0, info->lfb_size);
+}
 
 // draw a pixel
-void draw_pixel(struct screen_info *info, u64 x, u64 y, u32 color)
+void draw_pixel(struct screen_info *info, u64 x, u64 y, enum PxColor color)
 {
         // Prevent drawing outside boundaries
         if (x >= info->lfb_width || y >= info->lfb_height)
@@ -22,7 +21,7 @@ void draw_pixel(struct screen_info *info, u64 x, u64 y, u32 color)
 }
 
 // draw rectangle
-void draw_filled_rect(struct screen_info *info, u64 x, u64 y, u64 w, u64 h, u32 color) {
+void draw_filled_rect(struct screen_info *info, u64 x, u64 y, u64 w, u64 h, enum PxColor color) {
     // Check for overflow in coordinates
     if (x + w < x || y + h < y) return; 
 
@@ -44,7 +43,7 @@ void draw_filled_rect(struct screen_info *info, u64 x, u64 y, u64 w, u64 h, u32 
 
 struct fbcon framebuffer_con;
 
-void draw_char(char c, u64 x, u64 y, u32 color)
+void draw_char(char c, u64 x, u64 y, enum PxColor color)
 {
         const u8 *glyph = &font_vga_8x16.data[(u8)c * font_vga_8x16.height];
         for (u32 row = 0; row < font_vga_8x16.height; row++) {
@@ -93,4 +92,9 @@ void fbcon_write(char c)
                         framebuffer_con.cursorX += framebuffer_con.font->width;
                         break;
         }
+}
+
+void fbcon_clear()
+{
+        clear_framebuffer(&framebuffer_con.info);
 }

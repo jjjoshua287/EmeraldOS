@@ -23,7 +23,20 @@ static inline void init_fbcon(struct screen_info *info)
         framebuffer_con.cursorY = font->height * 4;
 }
 
-void draw_char(char c, u64 x, u64 y, u32 color);
+enum PxColor {
+        BLACK  = 0x0,
+        WHITE  = 0x00FFFFFF,
+        RED    = 0x00FF0000,
+        GREEN  = 0x0000FF00,
+        BLUE   = 0x000000FF,
+        YELLOW = 0x00FFFF00,
+};
+
+/* raw function that may be used in further implementation */
+void draw_char(char c, u64 x, u64 y, enum PxColor color);
+
+/* these are the intended functions to be called when importing this header */
 void fbcon_write(char c);
+void fbcon_clear();
 
 #endif

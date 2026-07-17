@@ -28,8 +28,9 @@ efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTable)
                 
                 info.lfb_base   = gop->Mode->FrameBufferBase;
                 info.lfb_ppsl   = gop->Mode->Info->PixelsPerScanLine;
-                info.lfb_width = gop->Mode->Info->HorizontalResolution;
-                info.lfb_height  = gop->Mode->Info->VerticalResolution;
+                info.lfb_width  = gop->Mode->Info->HorizontalResolution;
+                info.lfb_height = gop->Mode->Info->VerticalResolution;
+                info.lfb_size   = gop->Mode->FrameBufferSize;
         }
         return status;
 }
