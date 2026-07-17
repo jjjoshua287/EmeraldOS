@@ -5,7 +5,6 @@
 #include <emerald/types.h>
 
 /* helper here until IRQs are fully implemented */
-#define FIRST_UNNAMED_STUB_VEC 32
 #define DECLARE_IDTENTRY(name) void name(void)
 
 /* IDT Entry prototypes */

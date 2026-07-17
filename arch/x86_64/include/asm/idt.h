@@ -7,7 +7,7 @@
 
 static inline void invalidate_idt()
 {
-    struct desc_ptr idt = {
+    static const struct desc_ptr idt = {
         .size = 0,
         .addr = 0
     };
