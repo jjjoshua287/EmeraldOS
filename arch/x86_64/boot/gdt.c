@@ -1,3 +1,4 @@
+#include <asm/gdt.h>
 #include <asm/desc.h>
 #include <asm/desc_defs.h>
 #include <asm/segment.h>
@@ -16,7 +17,7 @@ void tss_init(void)
 }
 
 /* Initalize all the entries of the GDT */
-void gdt_init(void)
+static void gdt_init(void)
 {
 	struct desc_struct descs[GDT_ENTRIES];
 	memset(&gdt[GDT_ENTRY_NULL], 0, sizeof(struct desc_struct));
@@ -32,9 +33,6 @@ void gdt_init(void)
 		write_gdt_entry(gdt, i, &descs[i], 0);
 	tss_init();
 }
-
-/* Assembly stub to reload segment selectors. */
-extern void reload_segments(void);
 
 /* Setup the GDT */
 void setup_gdt(void)

@@ -21,8 +21,9 @@ ESP = esp/EFI/BOOT
 # Initialize global lists to populate via sub-makefiles
 SRCS := 
 SUBDIRS = kernel lib drivers
+ARCH_DIR = arch/$(ARCH)
 
-include arch/$(ARCH)/Makefile
+include $(ARCH_DIR)/Makefile
 include kernel/Makefile
 include lib/Makefile
 include drivers/Makefile

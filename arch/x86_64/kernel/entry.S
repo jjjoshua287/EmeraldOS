@@ -1,5 +1,4 @@
-extern do_interrupt_handler
-
+.extern handle_interrupt
 /* shared logic between all exception handlers */
 isr_wrapper:
     /* push registers */
@@ -22,7 +21,7 @@ isr_wrapper:
     /* enter kernel */
     mov %rsp, %rcx  /* frame pointer arg */
     sub $40, %rsp   /* 32 bytes shadow space + 8 bytes padding to fix alignment */
-    call do_interrupt_handler
+    call handle_interrupt
     add $40, %rsp   /* restore rsp */
 
     /* pop registers */
@@ -47,25 +46,36 @@ isr_wrapper:
     iretq
 
 .macro ISR_NOERR name, vec
-.global asm_isr_\name
+    .global asm_isr_\name
 asm_isr_\name:
-    push $0     /* dummy error code */
+    push $0
     push $\vec
     jmp isr_wrapper
 .endm
 
 .macro ISR_ERR name, vec
-.global asm_isr_\name
+    .global asm_isr_\name
+asm_isr_\name:
+    push $\vec
+    jmp isr_wrapper
+.endm
+
+.macro ISR_IRQ vec
+    .global asm_irq_\vec
+asm_irq_\vec:
+    push $0
     push $\vec
     jmp isr_wrapper
 .endm
 
 .altmacro
-.set vec, 32
+
+.set irq_num, 32
 .rept 224
-    ISR_NOERR asm_irq%vec, %vec
-    .set vec, vec+1
+    ISR_IRQ %irq_num
+    .set irq_num, irq_num + 1
 .endr
+
 .noaltmacro
 
 ISR_NOERR divide_error,          0

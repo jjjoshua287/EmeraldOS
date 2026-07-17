@@ -1,0 +1,1 @@
+SRCS += $(addprefix $(ARCH_DIR)/kernel/, idt.c isr.c entry.S)

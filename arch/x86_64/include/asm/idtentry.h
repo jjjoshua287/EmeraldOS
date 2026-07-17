@@ -2,7 +2,6 @@
 #define X86_64_IDT_ENTRY_H
 
 #include <asm/segment.h>
-#include <emerald/types.h>
 
 /* helper here until IRQs are fully implemented */
 #define DECLARE_IDTENTRY(name) void name(void)
