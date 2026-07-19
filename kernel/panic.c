@@ -8,11 +8,14 @@
 static bool panicking = false;
 
 /* Restart kernel by forcing a triple fault */
-[[noreturn]] void emergency_restart()
+[[noreturn]] void emergency_restart(void)
 {
         __asm__ volatile("cli");
         invalidate_idt();
         __asm__ volatile("int $64");
+
+        /* Prevent compiler from throwing -Winvalid-noreturn */
+        __builtin_unreachable();
 }
 
 /* prints an error message and registers if non-NULL. Halts PC */
