@@ -109,4 +109,6 @@ static inline void init_idt_desc(gate_desc *gate, const struct idt_data *d)
         gate->reserved          = 0;
 }
 
+void invalidate_idt(void);
+
 #endif // X86_64_DESC_H

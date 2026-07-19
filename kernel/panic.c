@@ -1,4 +1,4 @@
-#include <asm/idt.h>
+#include <asm/desc.h>
 #include <asm/processor.h>
 
 #include <emerald/string.h>
@@ -7,12 +7,12 @@
 
 static bool panicking = false;
 
-/* Restart kernel by loading invalid IDT and triggering a Divide By Zero fault */
+/* Restart kernel by forcing a triple fault */
 [[noreturn]] void emergency_restart()
 {
-        /* Intentionally cause a Triple Fault to restart CPU */
+        __asm__ volatile("cli");
         invalidate_idt();
-        int x = 1 / 0;
+        __asm__ volatile("int $64");
 }
 
 /* prints an error message and registers if non-NULL. Halts PC */

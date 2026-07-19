@@ -44,3 +44,12 @@ struct desc_ptr idt_desc = {
         .size = IDT_TABLE_SIZE - 1,
         .addr = (u64)idt_table
 };
+
+void invalidate_idt(void)
+{
+    static const struct desc_ptr idt = {
+        .size = 0,
+        .addr = 0
+    };
+    load_idt(&idt);
+}
