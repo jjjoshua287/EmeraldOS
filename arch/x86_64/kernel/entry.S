@@ -73,28 +73,28 @@ asm_irq_\vec:
 .endm
 
 /* Assembly stub labels for CPU Exceptions */
-ISR_NOERR divide_error,          0
-ISR_NOERR debug,                 1
-ISR_NOERR nmi,                   2
-ISR_NOERR breakpoint,            3
-ISR_NOERR overflow,              4
-ISR_NOERR bound_range,           5
-ISR_NOERR invalid_opcode,        6
-ISR_NOERR device_not_available,  7
-ISR_ERR   double_fault,          8
-ISR_NOERR coprocessor_segment,   9
-ISR_ERR   invalid_tss,          10
-ISR_ERR   segment_not_present,  11
-ISR_ERR   stack_segment,        12
-ISR_ERR   general_protection,   13
-ISR_ERR   page_fault,           14
+ISR_NOERR division_error,               0
+ISR_NOERR debug,                        1
+ISR_NOERR nmi,                          2
+ISR_NOERR breakpoint,                   3
+ISR_NOERR overflow,                     4
+ISR_NOERR bound_range_exceeded,         5
+ISR_NOERR invalid_opcode,               6
+ISR_NOERR device_not_available,         7
+ISR_ERR   double_fault,                 8
+ISR_NOERR coproc_segment_overrun,       9
+ISR_ERR   invalid_tss,                  10
+ISR_ERR   segment_not_present,          11
+ISR_ERR   stack_segment_fault,          12
+ISR_ERR   general_protection_fault,     13
+ISR_ERR   page_fault,                   14
 ISR_RESERVED 15
-ISR_NOERR x87_fpe,              16
-ISR_ERR   alignment_check,      17
-ISR_NOERR machine_check,        18
-ISR_NOERR simd_fpe,             19
-ISR_NOERR virtualization,       20
-ISR_ERR   control_protection,   21
+ISR_NOERR x87_float_point_exception,    16
+ISR_ERR   alignment_check,              17
+ISR_NOERR machine_check,                18
+ISR_NOERR simd_float_point_exception,   19
+ISR_NOERR virtualization_exception,     20
+ISR_ERR   control_protection_exception, 21
 
 /* NOTE: .rept wasn't used to prevent overthinking */
 ISR_RESERVED 22
@@ -104,9 +104,9 @@ ISR_RESERVED 25
 ISR_RESERVED 26
 ISR_RESERVED 27
 
-ISR_NOERR hypervisor_injection, 28
-ISR_ERR   vmm_comms_exception,  29
-ISR_ERR   security_exception,   30
+ISR_NOERR hypervisor_injection_exception,   28
+ISR_ERR   vmm_communication_exception,      29
+ISR_ERR   security_exception,               30
 ISR_RESERVED 31
 
 /* Generate remaining stubs for IRQs + Syscalls 

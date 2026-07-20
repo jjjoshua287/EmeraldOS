@@ -1,6 +1,8 @@
-#include <asm/segment.h>
 #include <asm/desc_defs.h>
 #include <asm/desc.h>
+#include <asm/exceptions.h>
+#include <asm/segment.h>
+#include <asm/idtentry.h>
 
 #include <emerald/types.h>
 
@@ -18,7 +20,7 @@ enum {
                 .addr      = _addr,                     \
                 .bits.ist  = _ist,                      \
                 .bits.type = _type,                     \
-                .bits.dpl  = dpl,                       \
+                .bits.dpl  = _dpl,                      \
                 .bits.p    = 1,                         \
         }
 

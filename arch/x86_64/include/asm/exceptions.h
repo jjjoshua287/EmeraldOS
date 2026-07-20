@@ -14,7 +14,7 @@
 #define EXC_UD          6   /* Invalid Opcode */
 #define EXC_NM          7   /* Device not available */
 #define EXC_DF          8   /* Double Fault */
-#define EXC_NM          9   /* Coprocessor Segment Overrun (Deprecated in modern CPUs) */
+#define EXC_OLD_MP      9   /* Coprocessor Segment Overrun (Deprecated in modern CPUs) */
 #define EXC_TS          10  /* Invalid TSS */
 #define EXC_NP          11  /* Segment not present */
 #define EXC_SS          12  /* Stack-Segment Fault */
