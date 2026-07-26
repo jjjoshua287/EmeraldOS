@@ -7,6 +7,7 @@
 
 #include <emerald/types.h>
 #include <emerald/string.h>
+#include <emerald/panic.h>
 
 /* functions for making hardware descriptors */
 
@@ -87,7 +88,7 @@ static inline void native_load_idt(const struct desc_ptr *idtr)
 static inline void init_idt_data(struct idt_data *data, unsigned int v, const void *addr)
 {
         if (v > 0xFF)
-                return; /* TODO: Panic instead of returning */
+                panic("Bad Interrupt Vector passed to init_idt_data", NULL);
         memset(data, 0, sizeof(*data));
         data->vector    = v;
         data->addr      = addr;
@@ -96,7 +97,7 @@ static inline void init_idt_data(struct idt_data *data, unsigned int v, const vo
         data->bits.p    = 1;
 }
 
-static inline void init_idt_desc(gate_desc *gate, const struct idt_data *d)
+static inline void idt_init_desc(gate_desc *gate, const struct idt_data *d)
 {
         /* convert const void* to a raw integer */
         u64 addr = (u64)d->addr;

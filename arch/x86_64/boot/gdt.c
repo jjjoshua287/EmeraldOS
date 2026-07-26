@@ -1,4 +1,4 @@
-#include <asm/gdt.h>
+#include <asm/setup.h>
 #include <asm/desc.h>
 #include <asm/desc_defs.h>
 #include <asm/segment.h>

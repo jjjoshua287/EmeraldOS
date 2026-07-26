@@ -7,7 +7,7 @@
  * - this is currently unneeded at the moment because there is no concept of userspace processes,
  *   but it'll be useful once the concept of userspace exists
  */
-#define FAULT_IN_KERNEL_SPACE(regs) !(regs->cs & 3)
+#define FAULT_IN_KERNEL_SPACE(regs) (regs->cs & 3) == 0
 
 static void handle_user_exception()
 {

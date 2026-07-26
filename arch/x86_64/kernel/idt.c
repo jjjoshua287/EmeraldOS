@@ -40,6 +40,7 @@ enum {
 
 #define IDT_TABLE_SIZE (IDT_ENTRIES * sizeof(gate_desc))
 
+#define IDT_CURRENT_GATES 32
 static const struct idt_data def_idt[] = {
         INTG(EXC_DE,            asm_exc_division_error),
         ISTG(EXC_DB,            asm_exc_debug, IST_INDEX_DB),
@@ -72,14 +73,33 @@ static const struct idt_data def_idt[] = {
         INTG(EXC_HV,            asm_exc_hypervisor_injection_exception),
         INTG(EXC_VC,            asm_exc_vmm_communication_exception),
         INTG(EXC_SX,            asm_exc_security_exception),
+        INTG(31,                asm_exc_reserved_vector_31),
 };
 
-gate_desc idt_table[IDT_ENTRIES];
+gate_desc idt_table[IDT_ENTRIES] = {0};
 
 struct desc_ptr idt_desc = {
         .size = IDT_TABLE_SIZE - 1,
         .addr = (u64)idt_table
 };
+
+/* setup default exceptions for Interrupt Descriptor Table */
+static void idt_setup_from_table(gate_desc *idt, const struct idt_data *data, size_t size)
+{
+        gate_desc desc;
+
+        for (; size > 0; data++, size--) {
+                idt_init_desc(&desc, data);
+                write_idt_entry(idt, data->vector, &desc);
+        }
+}
+
+/* Initalize the IDT with default gates */
+void setup_idt(void)
+{
+        idt_setup_from_table(idt_table, def_idt, sizeof(def_idt) / sizeof(def_idt[0]));
+        load_idt(&idt_desc);
+}
 
 void invalidate_idt(void)
 {
