@@ -1,3 +1,6 @@
+VERSION = 0.0.1
+GIT_HASH = $(shell git rev-parse --short HEAD)
+
 CC = clang
 LINKER = lld-link
 ARCH = x86_64
