@@ -3,10 +3,25 @@
 
 #define EOF -1
 
+struct fbcon framebuffer_con;
+
 void clear_framebuffer(struct screen_info *info)
 {
         void *fb = (void *)info->lfb_base;
         memset(fb, 0, info->lfb_size);
+}
+
+/* Initialize framebuffer console (fbcon) driver with screen info from EFI stub */
+void init_fbcon(struct screen_info *info)
+{
+        const struct font_desc *font = get_default_font();       
+        framebuffer_con.font = font;
+        framebuffer_con.info = *info;
+        framebuffer_con.cursorX = font->width;
+        framebuffer_con.cursorY = font->height;
+
+        /* remove messages the EFI stub printed */
+        clear_framebuffer(info);
 }
 
 // draw a pixel
@@ -40,8 +55,6 @@ void draw_filled_rect(struct screen_info *info, u64 x, u64 y, u64 w, u64 h, enum
         }
     }
 }
-
-struct fbcon framebuffer_con;
 
 void draw_char(char c, u64 x, u64 y, enum PxColor color)
 {
