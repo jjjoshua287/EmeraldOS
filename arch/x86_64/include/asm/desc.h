@@ -7,6 +7,9 @@
 
 #include <emerald/types.h>
 #include <emerald/string.h>
+#include <emerald/panic.h>
+
+/* functions for making hardware descriptors */
 
 static inline void pack_gate(gate_desc *gate, unsigned type, u64 func, 
                              unsigned dpl, unsigned ist)
@@ -72,14 +75,41 @@ static inline void __set_tss_desc(struct desc_struct *d, unsigned entry, struct 
 
 #define set_tss_desc(dt, addr) __set_tss_desc(dt, GDT_ENTRY_TSS, addr)
 
-static inline void native_load_gdt(const struct desc_ptr *dtr)
+static inline void native_load_gdt(const struct desc_ptr *gdtr)
 {
-        asm volatile("lgdt %0"::"m" (*dtr));
+        asm volatile("lgdt %0"::"m" (*gdtr));
 }
 
-static inline void native_load_idt(const struct desc_ptr *dtr)
+static inline void native_load_idt(const struct desc_ptr *idtr)
 {
-        asm volatile("lidt %0"::"m" (*dtr));
+        asm volatile("lidt %0"::"m" (*idtr));
 }
+
+static inline void init_idt_data(struct idt_data *data, unsigned int v, const void *addr)
+{
+        if (v > 0xFF)
+                panic("Bad Interrupt Vector passed to init_idt_data", NULL);
+        memset(data, 0, sizeof(*data));
+        data->vector    = v;
+        data->addr      = addr;
+        data->segment   = __KERNEL_CS;
+        data->bits.type = GATE_INTERRUPT;
+        data->bits.p    = 1;
+}
+
+static inline void idt_init_desc(gate_desc *gate, const struct idt_data *d)
+{
+        /* convert const void* to a raw integer */
+        u64 addr = (u64)d->addr;
+        
+        gate->offset_low        = (u16)addr;
+        gate->segment           = (u16)d->segment;
+        gate->bits              = d->bits;
+        gate->offset_middle     = (u16)(addr >> 16);
+        gate->offset_high       = (u32)(addr >> 32);
+        gate->reserved          = 0;
+}
+
+void invalidate_idt(void);
 
 #endif // X86_64_DESC_H

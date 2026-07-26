@@ -1,1 +1,2 @@
-include arch/x86_64/boot/Makefile
+include $(ARCH_DIR)/boot/Makefile
+include $(ARCH_DIR)/kernel/Makefile

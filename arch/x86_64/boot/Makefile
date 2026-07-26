@@ -1,1 +1,1 @@
-SRCS += arch/x86_64/boot/reload_segments.S arch/x86_64/boot/gdt.c
+SRCS += $(addprefix $(ARCH_DIR)/boot/, reload_segments.S gdt.c)

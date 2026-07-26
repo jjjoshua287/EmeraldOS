@@ -131,6 +131,14 @@ struct gate_struct {
 
 typedef struct gate_struct gate_desc;
 
+/* higher-level structure to easily configure IDT Entries */
+struct idt_data {
+        u16 vector;
+        u16 segment;
+        const void *addr;
+        struct idt_bits bits;
+};
+
 /* Structure for IDT + GDT registers */
 struct desc_ptr {
 	unsigned short size;

@@ -37,4 +37,14 @@
 #define __USER_DS           ((GDT_ENTRY_USER_DS << 3) | 3)
 #define __TSS_SEL           (GDT_ENTRY_TSS << 3)
 
-#endif //X86_64_SEGMENT_H
+/* Number of entries in Interrupt Descriptor Table */
+#define IDT_ENTRIES 256
+
+/* Interrupt Stack Table slots */
+#define IST_INDEX_DF    0
+#define IST_INDEX_NMI   1
+#define IST_INDEX_DB    2
+#define IST_INDEX_MC    3
+#define IST_INDEX_VC    4
+
+#endif /* X86_64_SEGMENT_H */

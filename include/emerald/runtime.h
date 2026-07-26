@@ -15,6 +15,7 @@ struct screen_info {
         u32 lfb_width;
         u32 lfb_height;
         u32 lfb_ppsl;
+        size_t lfb_size;
 };
 
 // runtime memory map info obtained during EFI Phase
@@ -26,8 +27,19 @@ struct hw_memory_map {
         u32 version;
 };
 
-extern struct screen_info info;
-extern struct hw_memory_map mem;
+/* forward reference */
+efi_memory_descriptor;
+
+/** struct boot_info - boot information for the kernel passed by the EFI stub
+ * @info: GOP framebuffer info
+ * @mem: hardware memory map info
+ */
+struct boot_info {
+        struct screen_info info;
+        struct hw_memory_map mem;
+};
+
+extern struct boot_info boot;
 
 int start_kernel(void);
 

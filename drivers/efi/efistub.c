@@ -5,10 +5,10 @@
 #include "efistub.h"
 
 efi_graphics_output_protocol_t *gop;
-struct screen_info info;
+struct screen_info scr_info;
 
 // Locate Graphics Output Protocol
-efi_status_t locate_gop(efi_boot_services_t *gBS)
+static efi_status_t locate_gop(efi_boot_services_t *gBS)
 {
         // Locate the Graphics Output Protocol
         gop = NULL;
@@ -17,7 +17,7 @@ efi_status_t locate_gop(efi_boot_services_t *gBS)
         return status;
 }
 
-efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTable)
+static efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTable)
 {
         efi_status_t status = locate_gop(SystemTable->BootServices);
         if (EFI_ERROR(status)) {
@@ -26,17 +26,18 @@ efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTable)
         } else {
                 SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Graphics Output Protocol: OK\n");
                 
-                info.lfb_base   = gop->Mode->FrameBufferBase;
-                info.lfb_ppsl   = gop->Mode->Info->PixelsPerScanLine;
-                info.lfb_width = gop->Mode->Info->HorizontalResolution;
-                info.lfb_height  = gop->Mode->Info->VerticalResolution;
+                scr_info.lfb_base   = gop->Mode->FrameBufferBase;
+                scr_info.lfb_ppsl   = gop->Mode->Info->PixelsPerScanLine;
+                scr_info.lfb_width  = gop->Mode->Info->HorizontalResolution;
+                scr_info.lfb_height = gop->Mode->Info->VerticalResolution;
+                scr_info.lfb_size   = gop->Mode->FrameBufferSize;
         }
         return status;
 }
 
-struct hw_memory_map mem;
+struct hw_memory_map hw_mem;
 
-efi_status_t get_memory_map(efi_boot_services_t *gBS)
+static efi_status_t get_memory_map(efi_boot_services_t *gBS)
 {
         struct hw_memory_map mmap = { .size = 0, .memoryMap = NULL };
 	efi_status_t status;
@@ -50,14 +51,14 @@ efi_status_t get_memory_map(efi_boot_services_t *gBS)
 
 	status = gBS->GetMemoryMap(&mmap.size, mmap.memoryMap, &mmap.key, &mmap.descriptorSize, &mmap.version);
 
-	memcpy(&mem, &mmap, sizeof(struct hw_memory_map));
+	memcpy(&hw_mem, &mmap, sizeof(struct hw_memory_map));
 	return status;
 }
 
 // Handle ExitBootServices()
-efi_status_t handle_exit(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
+static efi_status_t handle_exit(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
-        efi_status_t status = SystemTable->BootServices->ExitBootServices(ImageHandle, mem.key);
+        efi_status_t status = SystemTable->BootServices->ExitBootServices(ImageHandle, hw_mem.key);
         if (status == EFI_SUCCESS)
                 return status;
 
@@ -65,8 +66,16 @@ efi_status_t handle_exit(efi_handle_t ImageHandle, efi_system_table_t *SystemTab
         if (EFI_ERROR(status))
                 return status;
         
-        status = SystemTable->BootServices->ExitBootServices(ImageHandle, mem.key);
+        status = SystemTable->BootServices->ExitBootServices(ImageHandle, hw_mem.key);
         return status;
+}
+
+struct boot_info boot;
+
+static inline void fill_boot_info()
+{
+        boot.info = scr_info;
+        boot.mem = hw_mem;
 }
 
 efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
@@ -78,7 +87,9 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
         status = get_memory_map(SystemTable->BootServices);
         if (EFI_ERROR(status))
                 return status;
-        
+
+        fill_boot_info();
+                
         status = handle_exit(ImageHandle, SystemTable);
         if (EFI_ERROR(status))
                 return status;

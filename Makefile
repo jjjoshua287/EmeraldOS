@@ -1,3 +1,6 @@
+VERSION = 0.0.1
+GIT_HASH = $(shell git rev-parse --short HEAD)
+
 CC = clang
 LINKER = lld-link
 ARCH = x86_64
@@ -21,8 +24,9 @@ ESP = esp/EFI/BOOT
 # Initialize global lists to populate via sub-makefiles
 SRCS := 
 SUBDIRS = kernel lib drivers
+ARCH_DIR = arch/$(ARCH)
 
-include arch/$(ARCH)/Makefile
+include $(ARCH_DIR)/Makefile
 include kernel/Makefile
 include lib/Makefile
 include drivers/Makefile
