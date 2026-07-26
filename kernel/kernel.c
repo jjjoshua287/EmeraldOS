@@ -25,7 +25,8 @@ int kernel_main()
 int start_kernel(void)
 {
         setup_gdt();
-        init_fbcon(&info);
+        setup_idt();
+        init_fbcon(&boot.info);
         kernel_main();
         return 0;
 }
