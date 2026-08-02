@@ -93,12 +93,12 @@ struct acpi_subtable_header {
 /**
  * struct acpi_table_madt - Multiple APIC Description Table (v3)
  * @header: Common ACPI table_header
- * @addr:   Physical address of local APIC (LAPIC)
+ * @address:   Physical address of local APIC (LAPIC)
  * @flags:  Flags, self explanatory
  */
 struct acpi_table_madt {
 	struct acpi_table_header header;
-	u32 addr;
+	u32 address;
 	u32 flags;
 } __packed;
 
@@ -150,6 +150,32 @@ enum AcpiMadtType {
 	ACPI_MADT_TYPE_OEM_RESERVED             = 0x80  /* 0x80 to 0xFF are reserved for OEM use */
 };
 
+/* MADT Subtables, correspond to type in struct acpi_subtable_header */
 
+/* 0: Processor Local APIC */
+struct acpi_madt_local_apic {
+	struct acpi_subtable_header header;
+	u8 processor_id;
+	u8 id;
+	u32 flags;
+} __packed;
+
+/* 1: IO APIC */
+struct acpi_madt_io_apic {
+	struct acpi_subtable_header header;
+	u8 id;
+	u8 reserved;
+	u32 address;
+	u32 global_irq_base;
+} __packed;
+
+/* 2: Interrupt Override */
+struct acpi_madt_interrupt_override {
+	struct acpi_subtable_header header;
+	u8  bus;
+	u8  source_irq;
+	u32 global_irq;
+	u16 inti_flags;
+} __packed;
 
 #endif
