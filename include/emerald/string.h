@@ -12,4 +12,7 @@ void *memset(void *dest, int val, size_t n);
 /* copy N bytes of src to dest */
 void *memcpy(void *dest, const void *src, size_t n);
 
+/* compare N bytes of 2 memory blocks */
+int memcmp(const void *s1, const void *s2, size_t n);
+
 #endif
