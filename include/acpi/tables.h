@@ -92,9 +92,9 @@ struct acpi_subtable_header {
 
 /**
  * struct acpi_table_madt - Multiple APIC Description Table (v3)
- * @header: Common ACPI table_header
- * @address:   Physical address of local APIC (LAPIC)
- * @flags:  Flags, self explanatory
+ * @header: 	Common ACPI table_header
+ * @address: 	Physical address of local APIC (LAPIC)
+ * @flags: 	Flags, self explanatory
  */
 struct acpi_table_madt {
 	struct acpi_table_header header;
@@ -177,5 +177,78 @@ struct acpi_madt_interrupt_override {
 	u32 global_irq;
 	u16 inti_flags;
 } __packed;
+
+/* 3: NMI Source */
+struct acpi_madt_nmi_source {
+	struct acpi_subtable_header header;
+	u16 inti_flags;
+	u32 global_irq;
+} __packed;
+
+/* 4: Local APIC NMI */
+struct acpi_madt_local_apic_nmi {
+	struct acpi_subtable_header header;
+	u8  processor_id;
+	u16 inti_flags;
+	u8  lint;
+} __packed;
+
+/* 5: Local APIC Override */
+struct acpi_madt_local_apic_override {
+	struct acpi_subtable_header header;
+	u16 reserved;
+	u64 address;
+} __packed;
+
+/* 6, 7, and 8 are for the IA-64 Architecture, which currently isn't supported. */
+
+/* 9: Processor Local X2APIC (ACPI 4.0) */
+struct acpi_madt_local_x2apic {
+	struct acpi_subtable_header header;
+	u16 reserved;
+	u32 local_apic_id;
+	u32 lapic_flags;
+	u32 uid;
+} __packed;
+
+/* 10: Local X2APIC NMI (ACPI 4.0) */
+struct acpi_madt_local_x2apic_nmi {
+	struct acpi_subtable_header header;
+	u16 inti_flags;
+	u32 uid;
+	u8  lint;
+	u8  reserved[3];
+} __packed;
+
+/* 11 through 15 are for ARM's Global Interrupt Controller (GIC)
+ * 	- this currently isn't supported yet.
+ */
+
+/* 16: Multiprocessor wakeup (ACPI 6.6) */
+struct acpi_madt_multiproc_wakeup {
+	struct acpi_subtable_header header;
+	u8  flags;
+	u8  reserved;
+	u32 translation_id;
+	u64 base_address;
+	u32 reserved2;
+} __packed;
+
+#define ACPI_MULTIPROC_WAKEUP_MB_OS_SIZE 	2032
+#define ACPI_MULTIPROC_WAKEUP_MB_FIRMWARE_SIZE 	2048
+
+struct acpi_madt_multiproc_wakeup_mailbox {
+	u16 command;
+	u16 reserved;
+	u32 apic_id;
+	u64 wakeup_vector;
+	/* Reserved for OS use */
+	u8  reserved_os[ACPI_MULTIPROC_WAKEUP_MB_OS_SIZE];
+	/* Reserved for firmware use */
+	u8  reserved_firmware[ACPI_MULTIPROC_WAKEUP_MB_FIRMWARE_SIZE];
+} __packed;
+
+#define ACPI_MP_WAKE_COMMAND_WAKEUP 1
+#define ACPI_MP_WAKE_COMMAND_TEST   2
 
 #endif
