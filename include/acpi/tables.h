@@ -1,5 +1,5 @@
-#ifndef ACPI_TABLES_H
-#define ACPI_TABLES_H
+#ifndef _ACPI_TABLES_H
+#define _ACPI_TABLES_H
 
 #include "acpi_types.h"
 #include <emerald/types.h>
@@ -251,4 +251,4 @@ struct acpi_madt_multiproc_wakeup_mailbox {
 #define ACPI_MP_WAKE_COMMAND_WAKEUP 1
 #define ACPI_MP_WAKE_COMMAND_TEST   2
 
-#endif
+#endif 	/* _ACPI_TABLES_H */

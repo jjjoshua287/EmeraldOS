@@ -1,5 +1,5 @@
-#ifndef ACPI_TYPES_H
-#define ACPI_TYPES_H
+#ifndef _ACPI_TYPES_H
+#define _ACPI_TYPES_H
 
 /*
  * ACPI Specification constatns
@@ -14,4 +14,4 @@
 #define ACPI_NONSTRING  /* String with no NUL terminator */
 #endif
 
-#endif
+#endif  /* _ACPI_TYPES_H */
