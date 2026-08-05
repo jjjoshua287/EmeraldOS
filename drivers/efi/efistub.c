@@ -1,8 +1,27 @@
 #include <emerald/efi.h>
 #include <emerald/string.h>
 #include <emerald/runtime.h>
+#include <acpi/acpi.h>
 
 #include "efistub.h"
+
+/**
+ * {get_efi_cfg_table} - Locate pointer to the configuration table a efi_guid corresponds to. 
+ * 
+ * @SystemTable: Pointer to the EFI System Table
+ * @guid: table GUID
+ * 
+ * Return: A pointer to the corresponding configuration table, or NULL if not found
+ */
+static void *get_efi_cfg_table(efi_system_table_t *SystemTable, efi_guid_t guid)
+{
+        for (int i = 0; i < SystemTable->NumberOfTableEntries; i++) {
+                if (guidcmp(SystemTable->ConfigurationTable->VendorGuid, guid) == 0)
+                        return SystemTable->ConfigurationTable->VendorTable;
+                SystemTable->ConfigurationTable->VendorTable++;
+        }
+        return NULL;
+}
 
 efi_graphics_output_protocol_t *gop;
 struct screen_info scr_info;

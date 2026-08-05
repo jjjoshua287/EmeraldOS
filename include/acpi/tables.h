@@ -6,7 +6,7 @@
 #include <emerald/compiler_types.h>
 
 /* Values for description table header signatures defined in this file */
-#define ACPI_SIG_RSDP "RSD PTR" /* Root System Description Pointer */
+#define ACPI_SIG_RSDP "RSD PTR " /* Root System Description Pointer */
 #define ACPI_SIG_RSDT "RSDT"	/* Root System Description Table */
 #define ACPI_SIG_XSDT "XSDT"	/* Extended System Description Table */
 #define ACPI_SIG_MADT "APIC" 	/* Multiple APIC Description Table */
