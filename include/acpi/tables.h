@@ -77,8 +77,8 @@ struct acpi_table_rsdt {
 
 /* Extendable System Description Table (64-bit successor to RSDT) */
 struct acpi_table_xsdt {
-	struct acpi_table_header header; /* array of pointers to ACPI tables */
-	u64 table_offset_entry[1];
+	struct acpi_table_header header;
+	u64 table_offset_entry[1];  /* array of pointers to ACPI tables */
 } __packed;
 
 #define ACPI_RSDT_ENTRY_SIZE (sizeof(u32))
