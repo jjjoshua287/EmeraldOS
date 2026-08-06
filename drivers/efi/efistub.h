@@ -2,7 +2,6 @@
 #define EFISTUB_H
 
 #include <emerald/efi.h>
-#include <emerald/string.h>
 
 extern const efi_system_table_t *efi_system_table;
 
@@ -140,10 +139,5 @@ typedef struct efi_graphics_output_protocol {
     void           *Blt;
     efi_graphics_output_protocol_mode_t *Mode;
 } efi_graphics_output_protocol_t;
-
-static inline bool guidcmp(efi_guid_t a, efi_guid_t b)
-{
-        return memcmp(&a, &b, sizeof(efi_guid_t));
-}
 
 #endif // EFISTUB_H
