@@ -26,7 +26,14 @@ int start_kernel(void)
 {
         setup_gdt();
         setup_idt();
+#ifdef CFG_INIT_FBCON_EARLY
         init_fbcon(&boot.info);
+        acpi_boot_init(&boot);
+#else
+        acpi_boot_init(&boot);
+        init_fbcon(&boot.info);
+#endif
+        
         kernel_main();
         return 0;
 }

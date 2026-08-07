@@ -35,17 +35,17 @@ static bool validate_rsdp(struct acpi_table_rsdp *rsdp)
  * In the future, it will disable acpi instead of panicking.
  */
 
-void acpi_boot_init(struct boot_info *boot)
+void acpi_boot_init()
 {
-        struct acpi_table_rsdp *rsdp = (struct acpi_table_rsdp *)boot->rsdp;
-        if (!validate_rsdp(rsdp))
+        struct acpi_table_rsdp *rsdp = (struct acpi_table_rsdp *)&boot.rsdp;
+        if (validate_rsdp(rsdp))
                 panic("Failure to initialize acpi, RSDP is invalid", NULL);
  
         struct acpi_table_header *hdr;
 	if (rsdp->revision >= 2 && rsdp->xsdt_physical_addr != 0)
-		hdr = rsdp->xsdt_physical_addr;
+		hdr = (struct acpi_table_header *)rsdp->xsdt_physical_addr;
 	else
-		hdr = rsdp->rsdt_physical_addr;
+		hdr = (struct acpi_table_header *)rsdp->rsdt_physical_addr;
 	if (!acpi_validate_table(hdr))
 		panic("RSDT/XSDT checksum failed", NULL);
 }
