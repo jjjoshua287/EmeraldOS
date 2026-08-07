@@ -115,9 +115,9 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
          * This doesn't guarentee the RSDP is valid however. The kernel
          * still needs to ensure it is valid.
          */
-        void *rsdp = get_efi_cfg_table(SystemTable, EFI_ACPI_20_TABLE_GUID);
+        void *rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)EFI_ACPI_20_TABLE_GUID);
         if (rsdp == NULL)
-                rsdp = get_efi_cfg_table(SystemTable, ACPI_10_TABLE_GUID);
+                rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)ACPI_10_TABLE_GUID);
 
         boot.rsdp = rsdp;
         fill_boot_info();

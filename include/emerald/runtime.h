@@ -35,7 +35,7 @@ efi_memory_descriptor;
  * @mem:  hardware memory map info
  */
 struct boot_info {
-        void *rsdp
+        void *rsdp;
         struct screen_info info;
         struct hw_memory_map mem;
 };
