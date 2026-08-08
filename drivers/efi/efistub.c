@@ -4,6 +4,29 @@
 
 #include "efistub.h"
 
+static inline bool guidcmp(efi_guid_t a, efi_guid_t b)
+{
+        return memcmp(&a, &b, sizeof(efi_guid_t));
+}
+
+/**
+ * get_efi_cfg_table - Locate pointer to the configuration table a efi_guid corresponds to. 
+ * 
+ * @SystemTable: Pointer to the EFI System Table
+ * @guid: table GUID
+ * 
+ * Return: A pointer to the corresponding configuration table, or NULL if not found
+ */
+void *get_efi_cfg_table(efi_system_table_t *SystemTable, efi_guid_t guid)
+{
+        for (int i = 0; i < SystemTable->NumberOfTableEntries; i++) {
+                if (guidcmp(SystemTable->ConfigurationTable->VendorGuid, guid) == 0)
+                        return SystemTable->ConfigurationTable->VendorTable;
+                SystemTable->ConfigurationTable->VendorTable++;
+        }
+        return NULL;
+}
+
 efi_graphics_output_protocol_t *gop;
 struct screen_info scr_info;
 
@@ -88,6 +111,15 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
         if (EFI_ERROR(status))
                 return status;
 
+        /* We check if rsdp is NULL in case the ACPI 2.0 Table isn't supported.
+         * This doesn't guarentee the RSDP is valid however. The kernel
+         * still needs to ensure it is valid.
+         */
+        void *rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)EFI_ACPI_20_TABLE_GUID);
+        if (rsdp == NULL)
+                rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)ACPI_10_TABLE_GUID);
+
+        boot.rsdp = rsdp;
         fill_boot_info();
                 
         status = handle_exit(ImageHandle, SystemTable);

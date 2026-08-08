@@ -1,4 +1,4 @@
-VERSION = 0.0.1
+VERSION = 0.0.2
 GIT_HASH = $(shell git rev-parse --short HEAD)
 
 CC = clang
@@ -13,6 +13,8 @@ CFLAGS = -target x86_64-pc-win32 \
 		 -Wno-msvc-not-found \
          -isystem $(CURDIR)/include \
          -isystem $(CURDIR)/arch/$(ARCH)/include/
+
+CFLAGS += -DCFG_INIT_FBCON_EARLY
 
 LDFLAGS = /subsystem:efi_application \
           /entry:efi_main \

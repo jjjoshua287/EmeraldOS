@@ -32,9 +32,10 @@ efi_memory_descriptor;
 
 /** struct boot_info - boot information for the kernel passed by the EFI stub
  * @info: GOP framebuffer info
- * @mem: hardware memory map info
+ * @mem:  hardware memory map info
  */
 struct boot_info {
+        void *rsdp;
         struct screen_info info;
         struct hw_memory_map mem;
 };
@@ -43,4 +44,4 @@ extern struct boot_info boot;
 
 int start_kernel(void);
 
-#endif // EMERALD_RUNTIME_H
+#endif /* EMERALD_RUNTIME_H */
