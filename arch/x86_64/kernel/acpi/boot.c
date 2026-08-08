@@ -34,7 +34,6 @@ static bool validate_rsdp(struct acpi_table_rsdp *rsdp)
 /* The kernel panics if acpi fails to init for easier debugging purposes. 
  * In the future, it will disable acpi instead of panicking.
  */
-
 void acpi_boot_init()
 {
         struct acpi_table_rsdp *rsdp = (struct acpi_table_rsdp *)&boot.rsdp;
@@ -45,7 +44,7 @@ void acpi_boot_init()
 	if (rsdp->revision >= 2 && rsdp->xsdt_physical_addr != 0)
 		hdr = (struct acpi_table_header *)rsdp->xsdt_physical_addr;
 	else
-		hdr = (struct acpi_table_header *)rsdp->rsdt_physical_addr;
+		hdr = (struct acpi_table_header *)(uintptr_t)rsdp->rsdt_physical_addr;
 	if (!acpi_validate_table(hdr))
 		panic("RSDT/XSDT checksum failed", NULL);
 }

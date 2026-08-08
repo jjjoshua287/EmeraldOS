@@ -8,8 +8,9 @@
 /* temporary function for logging progress of kernel */
 static void log_progress()
 {
-        printk("============== Current Progress ===============\n");
-        printk(" Working Interrupt Handlers for CPU exceptions\n");
+        printk("=============== Current Progress =================\n");
+        printk(" 1. Working Interrupt Handlers for CPU exceptions\n");
+        printk(" 2. Validated RSDT/XSDT\n");
 }
 
 int kernel_main()
