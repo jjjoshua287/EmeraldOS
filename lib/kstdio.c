@@ -1,3 +1,10 @@
+/* 
+ * NOTE: This file and it's associated header will be deprecated in v0.3 
+ * in favor of vsprintf.h and vsprintf.c, which is where the mostly complete 
+ * implementation will reside. 
+ */
+
+
 // kernel space formatted standard input output (stdio) operations.
 
 #include <stdarg.h>
