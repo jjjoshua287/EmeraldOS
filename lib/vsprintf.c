@@ -12,20 +12,25 @@ static void reverse_string(char *start, char *end)
         }
 }
 
+/* convert an ascii number integer up to 10 digits */
+static int atoi(const char *s)
+{
+        int ret = 0;
+        for (int i = 0; i < 10 && *s; i++)
+                ret = ret * 10 + (*s++ - '0');
+        return ret;
+}
+
 static void parse_printk_length_modifiers(const char *mod, struct printk_info *info)
 {
 
 }
 
-static void parse_printk_width(const char *c, struct printk_info *info, va_list ap)
+static inline void parse_printk_width(const char *c, struct printk_info *info, va_list ap)
 {
-        if (c == '*')
+        if (*c == '*')
                 info->width = va_arg(ap, int);
-        else if (!is_digit(c))
-                info->width = -1;  /* unused */
-        else
-        /* This will handle strings later once I am free again */
-                info->width = c - 48;
+        info->width = (is_digit(*c)) ? atoi(c) : -1;
 }
 
 static const char *parse_printk_flags(const char *flags, struct printk_info *info)
