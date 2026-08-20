@@ -1,40 +1,41 @@
 #ifndef VSPRINTF_H
 #define VSPRINTF_H
 
-#include <stddef.h>
 #include <stdarg.h>
+#include <stddef.h>
 
-/**
- * struct printk_info: format string for printk
- * @prec: precision
- * @width: width
- * @spec: format letter
- * @is_long_double: L/ll flag
- * @is_short: h flag
- * @is_long: l flag
- * @alt: # flag
- * @space: Space flag
- * @left: - flag
- * @showsign: + flag
- * @is_char: hh flag
- * @pad: padding character
- */
-struct printk_info {
-        int prec;
-        int width;
-        wchar_t spec;
-        unsigned int is_long_double:1;
-        unsigned int is_short:1;
-        unsigned int is_long:1;
-        unsigned int alt:1;
-        unsigned int space:1;
-        unsigned int left:1;
-        unsigned int showsign:1;
-        unsigned int is_char:1;
-        wchar_t pad;
+enum flags {
+	FLAG_SIGN    = 1 << 0,
+	FLAG_LEFT    = 1 << 1,
+	FLAG_PLUS    = 1 << 2,
+	FLAG_SPACE   = 1 << 3,
+	FLAG_ZEROPAD = 1 << 4,
+	FLAG_SMALL   = 1 << 5,
+	FLAG_SPECIAL = 1 << 6,
 };
 
-#define PRINTF_MAX_WIDTH 2048
+enum length_modifier {
+	LEN_DEFAULT = 0,
+	LEN_SHORT   = 1,
+	LEN_LONG    = 2,
+	LEN_LLONG   = 3,
+	LEN_SIZE_T  = 4,
+};
+
+struct printk_spec {
+	unsigned char  flags;
+	unsigned char  base;		/* number base: 8, 10, or 16 only */
+	short          precision;	/* number of digits/chars */
+	int            width;		/* width of output field */
+};
+
+#define FIELD_WIDTH_MAX 2048
+#define PRECISION_MAX ((1 << 15) - 1)
+
+#define PRINTK_SPEC_INIT { 	\
+	.base = 10,				\
+	.precision = -1,		\
+}
 
 int kvsnprintf(char *buf, size_t size, const char *fmt, va_list ap);
 int ksnprintf(char *buf, size_t size, const char *fmt, ...);

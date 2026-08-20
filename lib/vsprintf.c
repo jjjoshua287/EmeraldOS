@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <emerald/types.h>
 #include <emerald/vsprintf.h>
 
 #define is_digit(c) (((c) >= '0') && ((c) <= '9'))
@@ -12,7 +12,7 @@ static void reverse_string(char *start, char *end)
         }
 }
 
-/* convert an ascii number integer up to 10 digits */
+/* convert an ascii number to an integer up to 10 digits long */
 static int atoi(const char *s)
 {
         int ret = 0;
@@ -21,48 +21,62 @@ static int atoi(const char *s)
         return ret;
 }
 
-static void parse_printk_length_modifiers(const char *mod, struct printk_info *info)
+static void _parse_precision(const char *fmt, va_list args, struct printk_spec *spec)
 {
-
+        if (is_digit(*fmt)) {
+                spec->precision = atoi(fmt);
+        } else if (*fmt == '*') {
+                fmt++;
+                spec->precision = va_arg(args, int);
+        }
 }
 
-static inline void parse_printk_width(const char *c, struct printk_info *info, va_list ap)
+static void _parse_width(const char *fmt, va_list args, struct printk_spec *spec)
 {
-        if (*c == '*')
-                info->width = va_arg(ap, int);
-        info->width = (is_digit(*c)) ? atoi(c) : -1;
-}
-
-static const char *parse_printk_flags(const char *flags, struct printk_info *info)
-{
-        char c;
-        while (c = *flags++) {
-                switch (c) {
-                case '-':
-                        info->left = 1;
-                        break;
-                case '+':
-                        info->showsign = 1;
-                        break;
-                case ' ':
-                        info->space = !info->showsign;
-                        break;
-                case '#':
-                        info->alt = 1;
-                        break;
-                case '0':
-                        info->pad = '0';
-                        break;
-                default:
-                        if (info->left)
-                                info->pad = ' ';
-                        return;
+        if (is_digit(*fmt)) {
+                spec->width = atoi(fmt);
+        } else if (*fmt == '*') {
+                fmt++;
+                spec->width = va_arg(args, int);
+                if (spec->width < 0) {
+                        spec->width = -spec->width;
+                        spec->flags |= FLAG_LEFT;
                 }
         }
 }
 
-static void parse_printk_info(const char *fmt, struct printk_info *out_info)
+static void _parse_flags(const char *fmt, struct printk_spec *spec)
 {
-        if (out_info == NULL)
-                return;
+        while (*fmt) {
+                switch (*fmt) {
+                case '-': 
+                        spec->flags |= FLAG_LEFT;
+                        break;
+                case '+':
+                        spec->flags |= FLAG_SIGN;
+                        break;
+                case ' ':
+                        spec->flags |= FLAG_SPACE;
+                        break;
+                case '#':
+                        spec->flags |= FLAG_SPECIAL;
+                        break;
+                case '0':
+                        spec->flags |= FLAG_ZEROPAD;
+                        break;
+                default:
+                        return;
+                }
+                fmt++;
+        }
+}
+
+/* this function populates a struct printk_spec */
+int _parse_fmt_spec(const char *fmt, va_list args, struct printk_spec *spec)
+{
+        /* advance past the '% */
+        _parse_flags(++fmt, spec);
+        _parse_width(fmt, args, spec);
+	if (*fmt == '.')
+		_parse_precision(++fmt, args, spec);
 }
