@@ -4,6 +4,8 @@
 #include <stdarg.h>
 #include <stddef.h>
 
+#include <emerald/compiler_types.h>
+
 enum flags {
 	FLAG_SIGN    = 1 << 0,
 	FLAG_LEFT    = 1 << 1,
@@ -14,12 +16,13 @@ enum flags {
 	FLAG_SPECIAL = 1 << 6,
 };
 
-enum length_modifier {
-	LEN_DEFAULT = 0,
-	LEN_SHORT   = 1,
-	LEN_LONG    = 2,
-	LEN_LLONG   = 3,
-	LEN_SIZE_T  = 4,
+enum length_mod {
+	LEN_NONE,
+	LEN_HH,
+	LEN_H,
+	LEN_L,
+	LEN_LL,
+	LEN_Z
 };
 
 struct printk_spec {
@@ -27,15 +30,11 @@ struct printk_spec {
 	unsigned char  base;		/* number base: 8, 10, or 16 only */
 	short          precision;	/* number of digits/chars */
 	int            width;		/* width of output field */
-};
+} __packed;
+static_assert(sizeof(struct printk_spec) == 8);
 
 #define FIELD_WIDTH_MAX 2048
 #define PRECISION_MAX ((1 << 15) - 1)
-
-#define PRINTK_SPEC_INIT { 	\
-	.base = 10,				\
-	.precision = -1,		\
-}
 
 int kvsnprintf(char *buf, size_t size, const char *fmt, va_list ap);
 int ksnprintf(char *buf, size_t size, const char *fmt, ...);
