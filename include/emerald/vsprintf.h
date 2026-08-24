@@ -22,7 +22,8 @@ enum length_mod {
 	LEN_H,
 	LEN_L,
 	LEN_LL,
-	LEN_Z
+	LEN_Z,
+	LEN_T
 };
 
 struct printk_spec {
@@ -36,9 +37,9 @@ static_assert(sizeof(struct printk_spec) == 8);
 #define FIELD_WIDTH_MAX 2048
 #define PRECISION_MAX ((1 << 15) - 1)
 
-int kvsnprintf(char *buf, size_t size, const char *fmt, va_list ap);
-int ksnprintf(char *buf, size_t size, const char *fmt, ...);
-int kvscnprintf(char *buf, size_t size, const char *fmt, va_list ap);
-int kscnprintf(char *buf, size_t size, const char *fmt, ...);
+int vsnprintf(char *buf, size_t size, const char *fmt, va_list ap);
+int snprintf(char *buf, size_t size, const char *fmt, ...);
+int vscnprintf(char *buf, size_t size, const char *fmt, va_list ap);
+int scnprintf(char *buf, size_t size, const char *fmt, ...);
 
 #endif /* VSPRINTF_H */

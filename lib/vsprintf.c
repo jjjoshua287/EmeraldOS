@@ -24,7 +24,8 @@ static void reverse_string(char *start, char *end)
 
 static const char *_parse_precision(const char *fmt, va_list args, struct printk_spec *spec)
 {
-        if (is_digit(*fmt)) {
+        /* advance past the '.' */
+        if (is_digit(*(++fmt))) {
                 spec->precision = skip_atoi(fmt);
         } else if (*fmt == '*') {
                 fmt++;
@@ -87,7 +88,8 @@ static const char *decode_length(const char *fmt, enum length_mod *lm)
 		*lm = (fmt[1] == 'l') ? LEN_LL : LEN_L;
 	else if (fmt[0] == 'z')
 		*lm = LEN_Z;
-	
+	else if (fmt[0] == 't')
+                *lm = LEN_T;
 	fmt += (*lm == LEN_LL || *lm == LEN_HH) ? 2 : 1;
 	return fmt;
 }
@@ -95,6 +97,12 @@ static const char *decode_length(const char *fmt, enum length_mod *lm)
 static void parse_base(char c, struct printk_spec *spec, enum length_mod *lm)
 {
 	switch (c) {
+	case 'd':
+		spec->flags |= FLAG_SIGN;
+		/* fallthrough */
+	case 'i':
+		spec->base = 10;
+		break;
 	case 'x':
 		spec->flags |= FLAG_SMALL;
 		/* fallthrough */
@@ -106,7 +114,7 @@ static void parse_base(char c, struct printk_spec *spec, enum length_mod *lm)
 		spec->base = 8;
 		break;
 	default:
-		spec->base = 10;
+		spec->base = 0;
 		break;
 	}
 }
@@ -120,34 +128,51 @@ static void parse_base(char c, struct printk_spec *spec, enum length_mod *lm)
 static const char *parse_fmt_spec(const char *fmt, va_list args, struct printk_spec *spec, 
 				  enum length_mod *lm)
 {
-        /* advance past the '% */
-        fmt = _parse_flags(++fmt, spec);
+        fmt = _parse_flags(fmt, spec);
         fmt = _parse_width(fmt, args, spec);
 	if (*fmt == '.')
-		fmt = _parse_precision(++fmt, args, spec);
+		fmt = _parse_precision(fmt, args, spec);
 	fmt = decode_length(fmt, lm);
 	
 	parse_base(*fmt, spec, lm);	
 	return fmt;
 }
 
-/* Single bounds-checked buffer write helper */
-static inline void emit(char *buf, size_t size, size_t *written, char c)
+static inline char *emit(char *buf, char *end, const char c)
 {
-        if (*written <= size - 1)
-                buf[(*written)++] = c;
+        if (buf < end)
+                *buf = c;
+        return ++buf;
 }
 
-// write a string to a buffer
-static inline void emit_str(char *buf, size_t size, size_t *written, const char *s)
+static inline char *emit_str(char *buf, char *end, const char *s)
 {
-        while (*s && *written <= size - 1)
-                emit(buf, size, written, *s++);
+        while (*s)
+                emit(buf, end, *s++);
 }
 
-int kvsnprintf(char *buf, size_t size, const char *fmt, va_list args)
+static char *number(char *buf, char *end, unsigned long long num, struct printk_spec spec) 
+{}
+
+static char *string(char *buf, char *end, const char *str, struct printk_spec spec) 
+{}
+
+static char *pointer(char *buf, char *end, const void *ptr, struct printk_spec spec)
+{}
+
+int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
-	struct printk_spec spec;
-	enum length_mod lm;
-	fmt = parse_fmt_spec(fmt, args, &spec, &lm);
+	char *str = buf;
+        char *end = buf + size - 1; /* leave space for NULL terminator */
+
+        while (*fmt && buf < end) {
+                if (*fmt++ != '%') {
+                        emit(str, end, *fmt);
+			continue;
+		}
+		
+		enum length_mod lm;
+        	struct printk_spec spec = {0};
+		fmt = parse_fmt_spec(fmt, args, &spec, &lm);
+	}
 }
