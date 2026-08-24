@@ -78,6 +78,24 @@ static const char *_parse_flags(const char *fmt, struct printk_spec *spec)
 	return fmt;
 }
 
+/* update the format type if needed */
+static enum format_type check_spec_type(const char conv)
+{
+        switch (conv) {
+        case 'c':
+                return FORMAT_TYPE_CHAR;
+        case 's':
+                return FORMAT_TYPE_STR;
+        case 'p':
+                return FORMAT_TYPE_PTR;
+        case '%':
+                return FORMAT_TYPE_PCT_CHAR;
+        default:
+                return FORMAT_TYPE_NONE;
+        }
+}
+
+/* Decode the Length modifer and set FORMAT_TYPE */
 static const char *decode_length(const char *fmt, enum format_type *type)
 {
         switch (fmt[0]) {
@@ -94,7 +112,7 @@ static const char *decode_length(const char *fmt, enum format_type *type)
                 *type = FORMAT_TYPE_PTR_DIFF;
                 break;
         default:
-                *type = FORMAT_TYPE_NONE;
+                *type = check_spec_type(fmt);
                 return fmt;
         }
 
@@ -172,17 +190,59 @@ static char *pointer(char *buf, char *end, const void *ptr, struct printk_spec s
 
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
+        /* keep a local copy so we can return an unmodified ptr to start of buf */
 	char *str = buf;
         char *end = buf + size - 1; /* leave space for NULL terminator */
+        unsigned long long num = 0;
 
         while (*fmt && buf < end) {
+                num = 0;
                 if (*fmt++ != '%') {
-                        emit(str, end, *fmt);
+                        str = emit(str, end, *fmt);
 			continue;
 		}
-		
+
 		enum format_type type;
         	struct printk_spec spec = {0};
 		fmt = parse_fmt_spec(fmt, args, &spec, &type);
+
+                switch (type) {
+                case FORMAT_TYPE_CHAR:
+                        char c = (char)va_arg(args, int);
+                        /* handoff to char formatter and emit to buf */
+                        continue;
+                case FORMAT_TYPE_SHORT:
+                        num = (unsigned short)va_arg(args, unsigned int);
+                        break;
+                case FORMAT_TYPE_LONG:
+                        num = va_arg(args, unsigned long);
+                        break;
+                case FORMAT_TYPE_LONG_LONG:
+                        num = va_arg(args, unsigned long long);
+                        break;
+                case FORMAT_TYPE_SIZE_T:
+                        num = va_arg(args, size_t);
+                        break;
+                case FORMAT_TYPE_PTR_DIFF:
+                        num = va_arg(args, ptrdiff_t);
+                        break;
+                case FORMAT_TYPE_PTR:
+                        uintptr_t *ptr = (uintptr_t)va_arg(args, void *);
+                        pointer(str, end, ptr, spec);
+                        continue;
+                case FORMAT_TYPE_STR:
+                        char *s = va_arg(args, char *);
+                        str = string(str, end, s, spec);
+                        break;
+                case FORMAT_TYPE_PCT_CHAR:
+                        str = emit(str, end, '%');
+                        continue;
+                default:
+                        str = emit(str, end, '%');
+                        str = emit(str, end, *fmt);
+                        continue;
+                }
+
+                str = number(str, end, num, spec);
 	}
 }
