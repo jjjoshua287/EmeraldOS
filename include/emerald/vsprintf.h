@@ -16,14 +16,14 @@ enum flags {
 	FLAG_SPECIAL = 1 << 6,
 };
 
-enum length_mod {
-	LEN_NONE,
-	LEN_HH,
-	LEN_H,
-	LEN_L,
-	LEN_LL,
-	LEN_Z,
-	LEN_T
+enum format_type {
+	FORMAT_TYPE_NONE,
+	FORMAT_TYPE_CHAR,
+	FORMAT_TYPE_SHORT,
+	FORMAT_TYPE_LONG,
+	FORMAT_TYPE_LONG_LONG,
+	FORMAT_TYPE_SIZE_T,
+	FORMAT_TYPE_PTR_DIFF
 };
 
 struct printk_spec {

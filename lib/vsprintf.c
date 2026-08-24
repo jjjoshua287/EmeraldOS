@@ -78,23 +78,33 @@ static const char *_parse_flags(const char *fmt, struct printk_spec *spec)
 	return fmt;
 }
 
-static const char *decode_length(const char *fmt, enum length_mod *lm)
+static const char *decode_length(const char *fmt, enum format_type *type)
 {
-	*lm = LEN_NONE;
-	
-	if (fmt[0] == 'h')
-		*lm = (fmt[1] == 'h') ? LEN_HH : LEN_H;
-	else if (fmt[0] == 'l')
-		*lm = (fmt[1] == 'l') ? LEN_LL : LEN_L;
-	else if (fmt[0] == 'z')
-		*lm = LEN_Z;
-	else if (fmt[0] == 't')
-                *lm = LEN_T;
-	fmt += (*lm == LEN_LL || *lm == LEN_HH) ? 2 : 1;
-	return fmt;
+        switch (fmt[0]) {
+        case 'h':
+                *type = (fmt[1] == 'h') ? FORMAT_TYPE_CHAR : FORMAT_TYPE_SHORT;
+                break;
+        case 'l':
+                *type = (fmt[1] == 'l') ? FORMAT_TYPE_LONG_LONG : FORMAT_TYPE_LONG;
+                break;
+        case 'z':
+                *type = FORMAT_TYPE_SIZE_T;
+                break;
+        case 't':
+                *type = FORMAT_TYPE_PTR_DIFF;
+                break;
+        default:
+                *type = FORMAT_TYPE_NONE;
+                return fmt;
+        }
+
+        if (*type == FORMAT_TYPE_CHAR || *type == FORMAT_TYPE_LONG_LONG)
+                return fmt + 2;
+        else
+                return fmt + 1;
 }
 
-static void parse_base(char c, struct printk_spec *spec, enum length_mod *lm)
+static void parse_base(char c, struct printk_spec *spec, enum format_type *type)
 {
 	switch (c) {
 	case 'd':
@@ -126,15 +136,15 @@ static void parse_base(char c, struct printk_spec *spec, enum length_mod *lm)
  * @spec: Pointer to struct printk_spec.
  */
 static const char *parse_fmt_spec(const char *fmt, va_list args, struct printk_spec *spec, 
-				  enum length_mod *lm)
+				  enum format_type *type)
 {
         fmt = _parse_flags(fmt, spec);
         fmt = _parse_width(fmt, args, spec);
 	if (*fmt == '.')
 		fmt = _parse_precision(fmt, args, spec);
-	fmt = decode_length(fmt, lm);
+	fmt = decode_length(fmt, type);
 	
-	parse_base(*fmt, spec, lm);	
+	parse_base(*fmt, spec, type);	
 	return fmt;
 }
 
@@ -171,8 +181,8 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			continue;
 		}
 		
-		enum length_mod lm;
+		enum format_type type;
         	struct printk_spec spec = {0};
-		fmt = parse_fmt_spec(fmt, args, &spec, &lm);
+		fmt = parse_fmt_spec(fmt, args, &spec, &type);
 	}
 }
