@@ -1,6 +1,6 @@
 #include <emerald/string.h>
 
-size_t strlen(char *s)
+size_t strlen(const char *s)
 {
     size_t i = 0;
     while (*s++ != '\0')

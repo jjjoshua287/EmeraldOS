@@ -173,16 +173,16 @@ static inline char *emit(char *buf, char *end, const char c)
         return ++buf;
 }
 
-static inline char *emit_str(char *buf, char *end, const char *s)
+static inline char *emit_n(char *buf, char *end, const char *string, int n)
 {
-        while (*s)
-                buf = emit(buf, end, *s++);
+        for (int i = 0; i < n; i++)
+                buf = emit(buf, end, string[i]); 
         return buf;
 }
 
 static inline char *emit_padding(char *buf, char *end, const char pad, int num)
 {
-        for (; num != 0; num--)
+        for (; num > 0; num--)
                 buf = emit(buf, end, pad);
         return buf;
 }
@@ -192,6 +192,15 @@ static char *number(char *buf, char *end, unsigned long long num, struct printk_
         return buf;
 }
 
+/**
+ * string: internal formatting helper for strings
+ * @buf: string buffer
+ * @end: end of string buffer
+ * @str: string to format
+ * @spec: printk specification passed by value
+ * 
+ * Return: updated string buffer
+ */
 static char *string(char *buf, char *end, const char *str, struct printk_spec spec) 
 {
         int len;
@@ -200,13 +209,12 @@ static char *string(char *buf, char *end, const char *str, struct printk_spec sp
                 len = spec.precision;
         else
                 len = strlen(s);
-        
-        if ((len < spec.width) && !(spec.flags & FLAG_LEFT))
+
+        if (!(spec.flags & FLAG_LEFT))
                 buf = emit_padding(buf, end, ' ', spec.width - len);
-        buf = emit_str(buf, end, s);
-        
-        if ((len < spec.width) && (spec.flags & FLAG_LEFT))
-                return emit_padding(buf, end, ' ', spec.width - len);
+        buf = emit_n(buf, end, s, len);
+        if (spec.flags & FLAG_LEFT)
+                buf = emit_padding(buf, end, ' ', spec.width - len);
         return buf;
 }
 
@@ -255,7 +263,7 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                         num = va_arg(args, ptrdiff_t);
                         break;
                 case FORMAT_TYPE_PTR: {
-                        uintptr_t ptr = (uintptr_t)va_arg(args, void *);
+                        const void *ptr = va_arg(args, void *);
                         pointer(str, end, ptr, spec);
                         continue;
                 }
@@ -275,4 +283,5 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 
                 str = number(str, end, num, spec);
 	}
+        return str - buf;
 }

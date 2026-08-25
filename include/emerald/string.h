@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 /* calculate the length of a string excluding the null terminator */
-size_t strlen(char *s);
+size_t strlen(const char *s);
 
 /* set N bytes of dest to val */
 void *memset(void *dest, int val, size_t n);
