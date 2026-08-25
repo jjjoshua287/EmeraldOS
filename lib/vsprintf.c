@@ -26,7 +26,7 @@ static const char *_parse_precision(const char *fmt, va_list args, struct printk
 {
         /* advance past the '.' */
         if (is_digit(*(++fmt))) {
-                spec->precision = skip_atoi(fmt);
+                spec->precision = skip_atoi(&fmt);
         } else if (*fmt == '*') {
                 fmt++;
                 spec->precision = va_arg(args, int);
@@ -39,7 +39,7 @@ static const char *_parse_precision(const char *fmt, va_list args, struct printk
 static const char *_parse_width(const char *fmt, va_list args, struct printk_spec *spec)
 {
         if (is_digit(*fmt)) {
-                spec->width = skip_atoi(fmt);
+                spec->width = skip_atoi(&fmt);
         } else if (*fmt == '*') {
                 fmt++;
                 spec->width = va_arg(args, int);
@@ -59,7 +59,7 @@ static const char *_parse_flags(const char *fmt, struct printk_spec *spec)
                         spec->flags |= FLAG_LEFT;
                         break;
                 case '+':
-                        spec->flags |= FLAG_SIGN;
+                        spec->flags |= FLAG_PLUS;
                         break;
                 case ' ':
                         spec->flags |= FLAG_SPACE;
@@ -112,7 +112,7 @@ static const char *decode_length(const char *fmt, enum format_type *type)
                 *type = FORMAT_TYPE_PTR_DIFF;
                 break;
         default:
-                *type = check_spec_type(fmt);
+                *type = check_spec_type(*fmt);
                 return fmt;
         }
 
@@ -126,9 +126,8 @@ static void parse_base(char c, struct printk_spec *spec, enum format_type *type)
 {
 	switch (c) {
 	case 'd':
+        case 'i':
 		spec->flags |= FLAG_SIGN;
-		/* fallthrough */
-	case 'i':
 		spec->base = 10;
 		break;
 	case 'x':
@@ -195,10 +194,10 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
         char *end = buf + size - 1; /* leave space for NULL terminator */
         unsigned long long num = 0;
 
-        while (*fmt && buf < end) {
+        while (*fmt && str < end) {
                 num = 0;
-                if (*fmt++ != '%') {
-                        str = emit(str, end, *fmt);
+                if (*fmt != '%') {
+                        str = emit(str, end, *fmt++);
 			continue;
 		}
 
@@ -207,10 +206,11 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 		fmt = parse_fmt_spec(fmt, args, &spec, &type);
 
                 switch (type) {
-                case FORMAT_TYPE_CHAR:
+                case FORMAT_TYPE_CHAR: {
                         char c = (char)va_arg(args, int);
                         /* handoff to char formatter and emit to buf */
                         continue;
+                }
                 case FORMAT_TYPE_SHORT:
                         num = (unsigned short)va_arg(args, unsigned int);
                         break;
@@ -226,14 +226,16 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                 case FORMAT_TYPE_PTR_DIFF:
                         num = va_arg(args, ptrdiff_t);
                         break;
-                case FORMAT_TYPE_PTR:
-                        uintptr_t *ptr = (uintptr_t)va_arg(args, void *);
+                case FORMAT_TYPE_PTR: {
+                        uintptr_t ptr = (uintptr_t)va_arg(args, void *);
                         pointer(str, end, ptr, spec);
                         continue;
-                case FORMAT_TYPE_STR:
+                }
+                case FORMAT_TYPE_STR: {
                         char *s = va_arg(args, char *);
                         str = string(str, end, s, spec);
-                        break;
+                        continue;
+                }
                 case FORMAT_TYPE_PCT_CHAR:
                         str = emit(str, end, '%');
                         continue;
