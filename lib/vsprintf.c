@@ -1,4 +1,5 @@
 #include <emerald/types.h>
+#include <emerald/string.h>
 #include <emerald/vsprintf.h>
 
 #define is_digit(c) (((c) >= '0') && ((c) <= '9'))
@@ -175,17 +176,44 @@ static inline char *emit(char *buf, char *end, const char c)
 static inline char *emit_str(char *buf, char *end, const char *s)
 {
         while (*s)
-                emit(buf, end, *s++);
+                buf = emit(buf, end, *s++);
+        return buf;
+}
+
+static inline char *emit_padding(char *buf, char *end, const char pad, int num)
+{
+        for (; num != 0; num--)
+                buf = emit(buf, end, pad);
+        return buf;
 }
 
 static char *number(char *buf, char *end, unsigned long long num, struct printk_spec spec) 
-{}
+{
+        return buf;
+}
 
 static char *string(char *buf, char *end, const char *str, struct printk_spec spec) 
-{}
+{
+        int len;
+        const char *s = (str == NULL) ? "(null)" : str;
+        if (spec.precision >= 0)
+                len = spec.precision;
+        else
+                len = strlen(s);
+        
+        if ((len < spec.width) && !(spec.flags & FLAG_LEFT))
+                buf = emit_padding(buf, end, ' ', spec.width - len);
+        buf = emit_str(buf, end, s);
+        
+        if ((len < spec.width) && (spec.flags & FLAG_LEFT))
+                return emit_padding(buf, end, ' ', spec.width - len);
+        return buf;
+}
 
 static char *pointer(char *buf, char *end, const void *ptr, struct printk_spec spec)
-{}
+{
+        return buf;
+}
 
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
