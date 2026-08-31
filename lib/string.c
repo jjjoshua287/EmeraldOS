@@ -1,12 +1,21 @@
 #include <emerald/string.h>
 
-size_t strlen(char *s)
+size_t strlen(const char *s)
 {
-    size_t i = 0;
-    while (*s++ != '\0')
-        i++;
-    return i;
+    	size_t i = 0;
+    	while (*s++)
+        	i++;
+    	return i;
 }
+
+size_t strnlen(const char *s, size_t maxlen)
+{
+	size_t i = 0;
+        while (i < maxlen && *s++)
+		i++;
+	return i;
+}
+
 
 void *memset(void *dest, int val, size_t n)
 {

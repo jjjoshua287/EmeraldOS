@@ -5,6 +5,8 @@
 
 #include <asm/setup.h>
 
+#include "tests.h"
+
 /* temporary function for logging progress of kernel */
 static void log_progress()
 {
@@ -17,6 +19,8 @@ int kernel_main()
 {
         printk("EmeraldOS Kernel v%s\n\n", KERNEL_VERSION);
         log_progress();
+        printk("\n");
+        run_dev_tests();
 
         while (1);
         return 0;

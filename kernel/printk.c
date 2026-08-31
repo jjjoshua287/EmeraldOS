@@ -1,5 +1,5 @@
 #include <stdarg.h>
-#include <emerald/kstdio.h>
+#include <emerald/vsprintf.h>
 
 // temporary import until a driver struct with function ptrs implemented.
 #include <emerald/fbcon.h>
@@ -10,7 +10,7 @@ void printk(const char *restrict fmt, ...)
         va_list args;
 
         va_start(args, fmt);
-        kvscnprintf(kbuf, sizeof(kbuf), fmt, args);
+        vsnprintf(kbuf, sizeof(kbuf), fmt, args);
         va_end(args);
 
         char *ptr = kbuf;
