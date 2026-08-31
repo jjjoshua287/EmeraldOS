@@ -340,6 +340,19 @@ static unsigned long long convert_num_spec(unsigned int val, size_t size, struct
         return (int)val >> shift;
 }
 
+/**
+ * vsnprintf - Format a string and place it into a buffer
+ * @buf: The character buffer to write data to.
+ * @size: The size of the buffer, including the null terminator ('\0')
+ * @fmt: the format string
+ * @args: Arguments for the format string
+ * 
+ * `%f` and `%n` are unsupported
+ * `%p*` are currently unsupported, but will be expanded on as the need arises.
+ * 
+ * Return: The number of the characters that would've been written,
+ * excluding the null terminator.
+ */
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
         /* keep a local copy so we can return an unmodified ptr to start of buf */
@@ -430,4 +443,71 @@ out:
                         *(end - 1) = '\0';
         }
         return str - buf;
+}
+
+/**
+ * vscnprintf - Format a string and place it into a buffer
+ * @buf: The character buffer to write data to.
+ * @size: The size of the buffer, including the null terminator ('\0')
+ * @fmt: The format string
+ * @args: Arguments for the format string
+ * 
+ * Return: The number of characters written into @buf.
+ *      - If @size == 0, the return is 0
+ * 
+ * See the vsnprintf() documentation for more info
+ */
+int vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
+{
+        if (!size)
+                return 0;
+        int i = vsnprintf(buf, size, fmt, args);
+        if (i < size)
+                return i;
+
+        return size - 1;
+}
+
+/**
+ * snprintf - Format a string and place it into a buffer
+ * @buf: The character buffer to write data to.
+ * @size: The size of the buffer, including the null terminator ('\0')
+ * @fmt: The format string
+ * @...: Arguments for the format string
+ * 
+ * Return: The number of the characters that would've been written,
+ * excluding the null terminator.
+ * 
+ * See the vsnprintf() documentation for more info
+ */
+int snprintf(char *buf, size_t size, const char *fmt, ...)
+{
+        va_list args;
+        va_start(args, fmt);
+        int i = vsnprintf(buf, size, fmt, args);
+        va_end(args);
+
+        return i;
+}
+
+/**
+ * scnprintf - Format a string and place it into a buffer
+ * @buf: The character buffer to write data to.
+ * @size: The size of the buffer, including the null terminator ('\0')
+ * @fmt: The format string
+ * @...: Arguments for the format string
+ * 
+ * Return: The number of characters written into @buf.
+ *      - If @size == 0, the return is 0
+ * 
+ * See the vsnprintf() documentation for more info
+ */
+int scnprintf(char *buf, size_t size, const char *fmt, ...)
+{
+        va_list args;
+        va_start(args, fmt);
+        int i = vscnprintf(buf, size, fmt, args);
+        va_end(args);
+        
+        return i;
 }
