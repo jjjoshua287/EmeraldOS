@@ -39,7 +39,7 @@ static int utoa(unsigned long long num, char *out_buf, int base, int flags)
 }
 
 
-static const char *_parse_precision(const char *fmt, va_list args, struct printk_spec *spec)
+static const char *_parse_precision(const char *fmt, va_list *ap, struct printk_spec *spec)
 {
         /* advance past the '.' */
         fmt++;
@@ -47,7 +47,7 @@ static const char *_parse_precision(const char *fmt, va_list args, struct printk
                 spec->precision = skip_atoi(&fmt);
         } else if (*fmt == '*') {
                 fmt++;
-                spec->precision = va_arg(args, int);
+                spec->precision = va_arg(*ap, int);
         } else {
                 /* a single '.' was provided, */
                 spec->precision = 0;
@@ -60,13 +60,13 @@ static const char *_parse_precision(const char *fmt, va_list args, struct printk
 	return fmt;
 }
 
-static const char *_parse_width(const char *fmt, va_list args, struct printk_spec *spec)
+static const char *_parse_width(const char *fmt, va_list *ap, struct printk_spec *spec)
 {
         if (isdigit(*fmt)) {
                 spec->width = skip_atoi(&fmt);
         } else if (*fmt == '*') {
                 fmt++;
-                spec->width = va_arg(args, int);
+                spec->width = va_arg(*ap, int);
                 if (spec->width < 0) {
                         spec->width = -spec->width;
                         spec->flags |= FLAG_LEFT;
@@ -184,13 +184,13 @@ static void parse_base(char c, struct printk_spec *spec, enum format_type *type)
  * @args: Variable argument list of arguments
  * @spec: Pointer to struct printk_spec.
  */
-static const char *parse_fmt_spec(const char *fmt, va_list args, struct printk_spec *spec, 
+static const char *parse_fmt_spec(const char *fmt, va_list *ap, struct printk_spec *spec, 
 				  enum format_type *type)
 {
         fmt = _parse_flags(fmt, spec);
-        fmt = _parse_width(fmt, args, spec);
+        fmt = _parse_width(fmt, ap, spec);
 	if (*fmt == '.')
-		fmt = _parse_precision(fmt, args, spec);
+		fmt = _parse_precision(fmt, ap, spec);
         else
                 spec->precision = -1;
 	fmt = decode_length(fmt, type);
@@ -247,12 +247,17 @@ static char *number(char *buf, char *end, unsigned long long num, struct printk_
         /* reserve width for prefix if necessary */
         if (spec.flags & FLAG_SPECIAL) {
                 needs_pfx = num && ((spec.base == 8) || (spec.base == 16));
+                if (spec.base == 8) {
+                        needs_pfx = (!precision); 
+                }
                 if (needs_pfx)
                         width -= (spec.base == 16) ? 2 : 1;
         }
 
         /* calculate the number of digits to print */
         int len = utoa(num, tmp, spec.base, spec.flags);
+        if (num == 0 && precision == 0)
+                len = 0;
         if (spec.precision <= 0) {
                 precision = len;
                 if (spec.flags & FLAG_ZEROPAD && !(spec.flags & FLAG_LEFT))
@@ -277,7 +282,8 @@ static char *number(char *buf, char *end, unsigned long long num, struct printk_
         /* emit numbers after the prefix */
         if (precision > len)
                 buf = emit_padding(buf, end, '0', precision - len);
-        buf = emit_n(buf, end, tmp, len);
+        if (spec.precision)
+                buf = emit_n(buf, end, tmp, len);
         
         /* emit extra padding if left-aligned */
         if (spec.flags & FLAG_LEFT)
@@ -313,6 +319,10 @@ static char *string(char *buf, char *end, const char *str, struct printk_spec sp
 
 static char *pointer(char *buf, char *end, const void *ptr, struct printk_spec spec)
 {
+        if (ptr == NULL)
+                buf = string(buf, end, "(null)", spec);
+        else
+                buf = number(buf, end, (unsigned long long)ptr, spec);
         return buf;
 }
 /**
@@ -348,7 +358,7 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 		enum format_type type;
         	struct printk_spec spec = {0};
 
-		fmt = parse_fmt_spec(fmt, args, &spec, &type);
+		fmt = parse_fmt_spec(fmt, &args, &spec, &type);
                 fmt++;
 
                 switch (type) {
