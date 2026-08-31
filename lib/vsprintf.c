@@ -1,17 +1,7 @@
-#include <emerald/types.h>
+#include <stdarg.h>
+#include <emerald/ctype.h>
 #include <emerald/string.h>
 #include <emerald/vsprintf.h>
-
-#define is_digit(c) (((c) >= '0') && ((c) <= '9'))
-
-/* convert an ascii number to an integer up to 10 digits long */
-static int skip_atoi(const char **s)
-{
-        int ret = 0;
-        for (int i = 0; i < 10 && is_digit(**s); i++)
-                ret = ret * 10 + (*(*s)++ - '0');
-        return ret;
-}
 
 /* Reverse a string in-place. */
 static void reverse_string(char *start, char *end)
@@ -23,23 +13,56 @@ static void reverse_string(char *start, char *end)
         }
 }
 
+/* convert an ascii number to an integer up to 10 digits long */
+static int skip_atoi(const char **s)
+{
+        int ret = 0;
+        for (int i = 0; i < 10 && isdigit(**s); i++)
+                ret = ret * 10 + (*(*s)++ - '0');
+        return ret;
+}
+
+// convert an unsigned integer into a string, returning strlen()
+static int utoa(unsigned long long num, char *out_buf, int base, int flags)
+{
+        int i = 0;
+        const char *digits = (flags & FLAG_SMALL) ? "0123456789abcdef"
+                                                  : "0123456789ABCDEF";
+        do {
+                out_buf[i++] = digits[num % base];
+        } while ((num /= base) != 0);
+
+        reverse_string(out_buf, out_buf + i - 1);
+        out_buf[i] = '\0';
+
+        return i;
+}
+
+
 static const char *_parse_precision(const char *fmt, va_list args, struct printk_spec *spec)
 {
         /* advance past the '.' */
-        if (is_digit(*(++fmt))) {
+        fmt++;
+        if (isdigit(*fmt)) {
                 spec->precision = skip_atoi(&fmt);
         } else if (*fmt == '*') {
                 fmt++;
                 spec->precision = va_arg(args, int);
         } else {
-                spec->precision = -1;
+                /* a single '.' was provided, */
+                spec->precision = 0;
+                return fmt;
         }
+
+        /* Clamp precision to PRECISON_MAX to prevent overflow */
+        if (spec->precision > PRECISION_MAX)
+                spec->precision = PRECISION_MAX;
 	return fmt;
 }
 
 static const char *_parse_width(const char *fmt, va_list args, struct printk_spec *spec)
 {
-        if (is_digit(*fmt)) {
+        if (isdigit(*fmt)) {
                 spec->width = skip_atoi(&fmt);
         } else if (*fmt == '*') {
                 fmt++;
@@ -49,6 +72,9 @@ static const char *_parse_width(const char *fmt, va_list args, struct printk_spe
                         spec->flags |= FLAG_LEFT;
                 }
         }
+
+        if (spec->width > FIELD_WIDTH_MAX)
+                spec->width = FIELD_WIDTH_MAX;
 	return fmt;
 }
 
@@ -91,6 +117,9 @@ static enum format_type check_spec_type(const char conv)
                 return FORMAT_TYPE_PTR;
         case '%':
                 return FORMAT_TYPE_PCT_CHAR;
+        case 'f':
+        case 'n':
+                return FORMAT_TYPE_INVALID;
         default:
                 return FORMAT_TYPE_NONE;
         }
@@ -129,6 +158,8 @@ static void parse_base(char c, struct printk_spec *spec, enum format_type *type)
 	case 'd':
         case 'i':
 		spec->flags |= FLAG_SIGN;
+                /* fallthrough */
+        case 'u':
 		spec->base = 10;
 		break;
 	case 'x':
@@ -160,6 +191,8 @@ static const char *parse_fmt_spec(const char *fmt, va_list args, struct printk_s
         fmt = _parse_width(fmt, args, spec);
 	if (*fmt == '.')
 		fmt = _parse_precision(fmt, args, spec);
+        else
+                spec->precision = -1;
 	fmt = decode_length(fmt, type);
 	
 	parse_base(*fmt, spec, type);	
@@ -189,6 +222,66 @@ static inline char *emit_padding(char *buf, char *end, const char pad, int num)
 
 static char *number(char *buf, char *end, unsigned long long num, struct printk_spec spec) 
 {
+        char sign = '\0';
+        char pad = ' ';
+        char tmp[21];
+        bool needs_pfx = false;
+        int width = spec.width;
+        int precision = spec.precision;
+
+        /* Convert num to signed if it's negative when signed */
+        if (spec.flags & FLAG_SIGN) {
+                if ((signed long long)num < 0) {
+                        sign = '-';
+                        num = -(signed long long)num;
+                        width--;
+                } else if (spec.flags & FLAG_PLUS) {
+                        sign = '+';
+                        width--;
+                } else if (spec.flags & FLAG_SPACE) {
+                        sign = ' ';
+                        width--;
+                }
+        }
+
+        /* reserve width for prefix if necessary */
+        if (spec.flags & FLAG_SPECIAL) {
+                needs_pfx = num && ((spec.base == 8) || (spec.base == 16));
+                if (needs_pfx)
+                        width -= (spec.base == 16) ? 2 : 1;
+        }
+
+        /* calculate the number of digits to print */
+        int len = utoa(num, tmp, spec.base, spec.flags);
+        if (spec.precision <= 0) {
+                precision = len;
+                if (spec.flags & FLAG_ZEROPAD && !(spec.flags & FLAG_LEFT))
+                        pad = '0';
+        } else if (len > precision) {
+                precision = len;
+        }
+        width -= precision;
+
+        /* emit leading padding if any */
+        if (!(spec.flags & (FLAG_LEFT)))
+                buf = emit_padding(buf, end, pad, width);
+        if (sign)
+                buf = emit(buf, end, sign);
+        if (needs_pfx) {
+                if (spec.base == 16)
+                        buf = emit_n(buf, end, "0x", 2);
+                else
+                        buf = emit(buf, end, '0');
+        }
+
+        /* emit numbers after the prefix */
+        if (precision > len)
+                buf = emit_padding(buf, end, '0', precision - len);
+        buf = emit_n(buf, end, tmp, len);
+        
+        /* emit extra padding if left-aligned */
+        if (spec.flags & FLAG_LEFT)
+                buf = emit_padding(buf, end, ' ', width);
         return buf;
 }
 
@@ -222,36 +315,71 @@ static char *pointer(char *buf, char *end, const void *ptr, struct printk_spec s
 {
         return buf;
 }
+/**
+ * convert_num_spec: Turn a 1/2/4-byte value into a 64-bit one for printing.
+ * Truncate the number as necessary and deal with signedness
+ * 
+ */
+static unsigned long long convert_num_spec(unsigned int val, size_t size, struct printk_spec spec)
+{
+        unsigned int shift = 32 - size * 8;
+        
+        val <<= shift;
+        if (!(spec.flags & FLAG_SIGN))
+                return val >> shift;
+        return (int)val >> shift;
+}
 
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
         /* keep a local copy so we can return an unmodified ptr to start of buf */
-	char *str = buf;
-        char *end = buf + size - 1; /* leave space for NULL terminator */
+        char *str = buf;
+        char *end = buf + size;
         unsigned long long num = 0;
 
-        while (*fmt && str < end) {
+        while (*fmt) {
                 num = 0;
                 if (*fmt != '%') {
                         str = emit(str, end, *fmt++);
 			continue;
 		}
-
+                /* advance past the '%' */
+                const char *start = fmt++;
 		enum format_type type;
         	struct printk_spec spec = {0};
+
 		fmt = parse_fmt_spec(fmt, args, &spec, &type);
+                fmt++;
 
                 switch (type) {
-                case FORMAT_TYPE_CHAR: {
-                        char c = (char)va_arg(args, int);
-                        /* handoff to char formatter and emit to buf */
+                case FORMAT_TYPE_NONE:
+                        if (!spec.base) {
+                                str = emit_n(str, end, start, fmt - start);
+                                continue;
+                        }
+                        num = convert_num_spec(va_arg(args, unsigned int), sizeof(int), spec);
+                        break;
+                case FORMAT_TYPE_CHAR:
+                        if (spec.base) {
+                                num = convert_num_spec(va_arg(args, unsigned int), sizeof(char), spec);
+                                break;
+                        }
+                        
+                        char c = (char)va_arg(args, unsigned int);
+                        if (!(spec.flags & FLAG_LEFT))
+                                str = emit_padding(str, end, ' ', spec.width - 1);
+                        str = emit(str, end, c);
+                        if (spec.flags & FLAG_LEFT)
+                                str = emit_padding(str, end, ' ', spec.width - 1);
                         continue;
-                }
                 case FORMAT_TYPE_SHORT:
-                        num = (unsigned short)va_arg(args, unsigned int);
+                        num = convert_num_spec(va_arg(args, unsigned int), sizeof(short), spec);
                         break;
                 case FORMAT_TYPE_LONG:
-                        num = va_arg(args, unsigned long);
+                        if (sizeof(long) == sizeof(int))
+                                num = convert_num_spec((unsigned int)va_arg(args, unsigned long), sizeof(long), spec);
+                        else
+                                num = va_arg(args, unsigned long);
                         break;
                 case FORMAT_TYPE_LONG_LONG:
                         num = va_arg(args, unsigned long long);
@@ -264,7 +392,7 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                         break;
                 case FORMAT_TYPE_PTR: {
                         const void *ptr = va_arg(args, void *);
-                        pointer(str, end, ptr, spec);
+                        str = pointer(str, end, ptr, spec);
                         continue;
                 }
                 case FORMAT_TYPE_STR: {
@@ -275,13 +403,21 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                 case FORMAT_TYPE_PCT_CHAR:
                         str = emit(str, end, '%');
                         continue;
-                default:
-                        str = emit(str, end, '%');
-                        str = emit(str, end, *fmt);
+                case FORMAT_TYPE_INVALID:
+                        str = emit_n(str, end, start, fmt - start);
                         continue;
+                default:
+                        /* something went wrong if we get here */
+                        goto out;
                 }
-
                 str = number(str, end, num, spec);
 	}
+out:
+        if (size > 0) {
+                if (str < end)
+                        *str = '\0';
+                else
+                        *(end - 1) = '\0';
+        }
         return str - buf;
 }

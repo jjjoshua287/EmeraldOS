@@ -15,6 +15,7 @@ enum flags {
 	FLAG_SMALL   = 1 << 5,	/* use lowercase hex */
 	FLAG_SPECIAL = 1 << 6,	/* prefix hex with "0x", octal with "0 "*/
 };
+static_assert(FLAG_SMALL == ('a' ^ 'A'));
 
 enum format_type {
 	FORMAT_TYPE_NONE,
@@ -27,6 +28,7 @@ enum format_type {
 	FORMAT_TYPE_PTR,
 	FORMAT_TYPE_STR,
 	FORMAT_TYPE_PCT_CHAR,
+	FORMAT_TYPE_INVALID
 };
 
 struct printk_spec {
