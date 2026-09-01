@@ -1,5 +1,5 @@
 #include <asm/desc.h>
-#include <asm/processor.h>
+#include <asm/ptrace.h>
 
 #include <emerald/string.h>
 #include <emerald/printk.h>
@@ -19,7 +19,7 @@ static bool panicking = false;
 }
 
 /* prints an error message and registers if non-NULL. Halts PC */
-[[noreturn]] void panic(const char *msg, struct hw_regs *regs)
+[[noreturn]] void panic(const char *msg, struct pt_regs *regs)
 {
         /* Prevent recursive calls to panic() */
         if (panicking)

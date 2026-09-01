@@ -3,6 +3,7 @@
         {
             "name": "Linux",
             "includePath": [
+                "${workspaceFolder}/arch/x86_64/include",
                 "${workspaceFolder}/**"
             ],
             "defines": [
