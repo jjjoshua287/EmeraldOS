@@ -31,4 +31,6 @@ struct pt_regs {
 
 #define user_mode(regs) ((regs)->cs & 3)
 
+void __show_regs(struct pt_regs *regs);
+
 #endif
