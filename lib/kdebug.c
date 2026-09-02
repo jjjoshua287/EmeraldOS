@@ -12,5 +12,9 @@ void show_regs_print_info()
 void show_regs(struct pt_regs *regs)
 {
         show_regs_print_info();
+        
+        /* TODO: get the value of regs if regs == NULL */
+        if (regs == NULL)
+                return;
         __show_regs(regs);
 }

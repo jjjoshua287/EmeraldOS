@@ -4,6 +4,7 @@
 #include <emerald/string.h>
 #include <emerald/printk.h>
 #include <emerald/fbcon.h>
+#include <emerald/kdebug.h>
 
 static bool panicking = false;
 
@@ -29,7 +30,7 @@ static bool panicking = false;
         fbcon_clear();
         printk("KERNEL PANIC!\n");
         printk("%s\n\n", msg);
-        /* TODO: Register Dump */
+        show_regs(regs);
 
         /* Halt CPU */
         __asm__ volatile ("cli");
