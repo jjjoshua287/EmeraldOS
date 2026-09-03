@@ -20,9 +20,9 @@ exc_wrapper:
 
     /* enter kernel */
     mov %rsp, %rcx  /* frame pointer arg */
-    sub $40, %rsp   /* 32 bytes shadow space + 8 bytes padding to fix alignment */
+    sub $32, %rsp   /* 32 bytes shadow space + 8 bytes padding to fix alignment */
     call handle_interrupt
-    add $40, %rsp   /* restore rsp */
+    add $32, %rsp   /* restore rsp */
 
     /* pop registers */
     pop %r15
