@@ -4,9 +4,9 @@
 
 void __show_regs(struct pt_regs *regs)
 {
-        printk("Vector: %llx  Error Code: %llx\n", regs->vector, regs->error_code);
-        printk("RIP: %016llx  CS: %016llx\n", regs->rip, regs->cs);
-        printk("RSP: %016llx  SS: %016llx\n", regs->rsp, regs->ss);
+        printk("Vector: 0x%02llx  Error Code: 0x%02llx\n", regs->vector, regs->error_code);
+        printk("RIP: %016llx  CS: %04llx\n", regs->rip, regs->cs);
+        printk("RSP: %016llx  SS: %04llx\n", regs->rsp, regs->ss);
         printk("RFLAGS: %016llx\n", regs->eflags);
         
         printk("RAX: %016llx  RBX: %016llx  RCX: %016llx\n",

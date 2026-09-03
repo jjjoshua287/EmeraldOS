@@ -22,6 +22,12 @@ int kernel_main()
         printk("\n");
         run_dev_tests();
 
+        #if CFG_PANIC
+        volatile int foo = 1;
+        volatile int bar = 0;
+        volatile int baz = foo / baz;
+        #endif
+
         while (1);
         return 0;
 }
