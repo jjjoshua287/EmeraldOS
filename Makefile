@@ -9,6 +9,7 @@ CFLAGS = -target x86_64-pc-win32 \
          -std=gnu23 \
          -ffreestanding \
          -fshort-wchar \
+		 -fno-omit-frame-pointer \
          -mno-red-zone \
 		 -Wno-msvc-not-found \
          -isystem $(CURDIR)/include \

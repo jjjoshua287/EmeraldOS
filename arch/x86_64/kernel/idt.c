@@ -71,6 +71,7 @@ static const struct idt_data def_idt[] = {
         INTG(26,                asm_exc_reserved_vector_26),
         INTG(27,                asm_exc_reserved_vector_27),
         INTG(EXC_HV,            asm_exc_hypervisor_injection_exception),
+        /* TODO: Change #VC to ISTG once these gates are actually relevant */
         INTG(EXC_VC,            asm_exc_vmm_communication_exception),
         INTG(EXC_SX,            asm_exc_security_exception),
         INTG(31,                asm_exc_reserved_vector_31),

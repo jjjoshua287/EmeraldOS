@@ -40,6 +40,11 @@ struct control_regs {
 	unsigned long long cr8;
 } __packed;
 
+struct stack_frame {
+	struct stack_frame *rbp;
+	u64 ret_addr;
+};
+
 static __always_inline unsigned long long native_read_cr0(void)
 {
     	unsigned long long val;
