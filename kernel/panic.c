@@ -5,6 +5,7 @@
 #include <emerald/printk.h>
 #include <emerald/fbcon.h>
 #include <emerald/kdebug.h>
+#include <emerald/compiler.h>
 
 static bool panicking = false;
 
@@ -16,7 +17,7 @@ static bool panicking = false;
         __asm__ volatile("int $64");
 
         /* Prevent compiler from throwing -Winvalid-noreturn */
-        __builtin_unreachable();
+        unreachable();
 }
 
 /* prints an error message and registers if non-NULL. Halts PC */
