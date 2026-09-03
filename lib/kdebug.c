@@ -1,6 +1,7 @@
 #include <emerald/kernel.h>
 #include <emerald/printk.h>
 
+#include <asm/bug.h>
 #include <asm/ptrace.h>
 
 void show_regs_print_info()
@@ -11,10 +12,8 @@ void show_regs_print_info()
 
 void show_regs(struct pt_regs *regs)
 {
+        /* Guard against NULL regs, print nothing instead */
+        BUG_ON(regs == NULL);
         show_regs_print_info();
-        
-        /* TODO: get the value of regs if regs == NULL */
-        if (regs == NULL)
-                return;
         __show_regs(regs);
 }

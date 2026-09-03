@@ -24,14 +24,16 @@ static bool panicking = false;
 [[noreturn]] void panic(const char *msg, struct pt_regs *regs)
 {
         /* Prevent recursive calls to panic() */
-        if (panicking)
+        if (unlikely(panicking))
                 emergency_restart();
         panicking = true;
 
         fbcon_clear();
         printk("KERNEL PANIC!\n");
         printk("%s\n\n", msg);
-        show_regs(regs);
+        
+        if (regs)
+                show_regs(regs);
 
         /* Halt CPU */
         __asm__ volatile ("cli");

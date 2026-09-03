@@ -7,7 +7,7 @@
 
 #define BUG_ON(cond) do {   \
     if (unlikely(cond))     \
-        BUG()               \
+        BUG();              \
 } while(0)                  \
 
 #endif
