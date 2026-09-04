@@ -20,7 +20,7 @@ exc_wrapper:
 
     /* enter kernel */
     mov %rsp, %rcx  /* frame pointer arg */
-    sub $32, %rsp   /* 32 bytes shadow space + 8 bytes padding to fix alignment */
+    sub $32, %rsp   /* Window x64 ABI requires 32 bytes shadow space for calls */
     call handle_interrupt
     add $32, %rsp   /* restore rsp */
 

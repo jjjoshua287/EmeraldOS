@@ -5,6 +5,14 @@
 #include <emerald/printk.h>
 #include <emerald/compiler.h>
 
+#ifdef CFG_NO_FRAME_POINTER
+void __dump_stack(struct pt_regs *regs)
+{
+
+}
+
+#else 
+
 static inline bool is_valid_stack_addr(unsigned char *rbp)
 {
         return (rbp >= kernel_stack && rbp <= (kernel_stack + KERNEL_STACK_SIZE - sizeof(struct stack_frame)));
@@ -26,3 +34,4 @@ void __dump_stack(struct pt_regs *regs)
                 frame = frame->rbp;
         }
 }
+#endif /* !CFG_NO_FRAME_POINTER */
