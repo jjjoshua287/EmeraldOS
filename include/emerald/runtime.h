@@ -42,6 +42,4 @@ struct boot_info {
 
 extern struct boot_info boot;
 
-int start_kernel(void);
-
 #endif /* EMERALD_RUNTIME_H */

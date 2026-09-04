@@ -101,6 +101,8 @@ static inline void fill_boot_info()
         boot.mem = hw_mem;
 }
 
+extern void start_64(void);
+
 efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
         efi_status_t status = setup_graphics_output_protocol(SystemTable);
@@ -127,6 +129,6 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
                 return status;
 
         /* Only RuntimeServices exist now. */
-        start_kernel();
+        start_64();
         return EFI_SUCCESS;
 }
