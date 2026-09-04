@@ -2,6 +2,7 @@
 #define ASM_X86_64_PTRACE_H
 
 #include <emerald/types.h>
+#include <asm/processor.h>
 
 struct pt_regs {
     u64 r15;
@@ -32,5 +33,6 @@ struct pt_regs {
 #define user_mode(regs) ((regs)->cs & 3)
 
 void __show_regs(struct pt_regs *regs);
+void __dump_stack(struct pt_regs *regs);
 
 #endif

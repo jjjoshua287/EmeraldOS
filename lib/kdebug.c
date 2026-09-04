@@ -10,10 +10,29 @@ void show_regs_print_info()
         printk("REGISTER DUMP:\n");
 }
 
+/**
+ * show_regs: Print the values of every CPU register onto the screen
+ * @regs: An interrupt frame with all the CPU registers
+ * 
+ * If regs == NULL, nothing is printed to the screen
+ */
 void show_regs(struct pt_regs *regs)
 {
-        /* Guard against NULL regs, print nothing instead */
-        BUG_ON(regs == NULL);
+        if (unlikely(regs == NULL))
+                return;
         show_regs_print_info();
         __show_regs(regs);
+}
+
+/**
+ * dump_stack: print a Stack Trace onto the screen
+ * @regs: An interrupt frame with all the CPU registers
+ * 
+ * regs is allowed to equal NULL here, handling of NULL values
+ * is offloaded to architecture-specific functions.
+ */
+void dump_stack(struct pt_regs *regs)
+{
+	printk("Call Trace:\n");
+	__dump_stack(regs);
 }

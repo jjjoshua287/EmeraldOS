@@ -45,6 +45,15 @@ struct stack_frame {
 	u64 ret_addr;
 };
 
+#define MAX_FRAMES 64
+
+static __always_inline unsigned long long native_read_rbp(void)
+{
+	unsigned long long val;
+	__asm__ volatile("mov %%rbp, %0" : "=r"(val));
+	return val;
+}
+
 static __always_inline unsigned long long native_read_cr0(void)
 {
     	unsigned long long val;

@@ -32,8 +32,11 @@ static bool panicking = false;
         printk("KERNEL PANIC!\n");
         printk("%s\n\n", msg);
         
-        if (regs)
+        if (regs) {
                 show_regs(regs);
+                printk("\n");
+        }
+        dump_stack(regs);
 
         /* Halt CPU */
         __asm__ volatile ("cli");
