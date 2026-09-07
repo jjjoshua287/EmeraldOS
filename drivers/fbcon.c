@@ -110,4 +110,6 @@ void fbcon_write(char c)
 void fbcon_clear()
 {
         clear_framebuffer(&framebuffer_con.info);
+        framebuffer_con.cursorX = framebuffer_con.font->width;
+        framebuffer_con.cursorY = framebuffer_con.font->height;
 }

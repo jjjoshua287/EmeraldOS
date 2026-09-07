@@ -20,42 +20,73 @@
  * @iomap_base: Offset to I/O permission bitmap
  */
 struct x86_hw_tss {
-    u32 reserved1;
-    u64 sp0;
-    u64 sp1;
-    u64 sp2;
-    u64 reserved2;
-    u64 ist[7];
-    u32 reserved3;
-    u32 reserved4;
-    u16 reserved5;
-    u16 iomap_base;
+	u32 reserved1;
+	u64 sp0;
+	u64 sp1;
+	u64 sp2;
+	u64 reserved2;
+	u64 ist[7];
+	u32 reserved3;
+	u32 reserved4;
+	u16 reserved5;
+	u16 iomap_base;
 } __packed;
 
-struct hw_regs {
-    u64 r15;
-    u64 r14;
-    u64 r13;
-    u64 r12;
-    u64 rbp;
-    u64 rbx;
-    u64 r11;
-    u64 r10;
-    u64 r9;
-    u64 r8;
-    u64 rax;
-    u64 rcx;
-    u64 rdx;
-    u64 rsi;
-    u64 rdi;
-    u64 vector;
-    u64 error_code;
-    /* Instruction pointer */
-    u64 rip;
-    u64 cs;
-    u64 eflags;
-    u64 rsp;
-    u64 ss;
-};   
+struct control_regs {
+	unsigned long long cr0;
+	unsigned long long cr2;
+	unsigned long long cr3;
+	unsigned long long cr4;
+	unsigned long long cr8;
+} __packed;
+
+struct stack_frame {
+	struct stack_frame *rbp;
+	u64 ret_addr;
+};
+
+#define MAX_FRAMES 64
+
+static __always_inline unsigned long long native_read_rbp(void)
+{
+	unsigned long long val;
+	__asm__ volatile("mov %%rbp, %0" : "=r"(val));
+	return val;
+}
+
+static __always_inline unsigned long long native_read_cr0(void)
+{
+    	unsigned long long val;
+    	__asm__ volatile("mov %%cr0, %0" : "=r"(val));
+    	return val;
+}
+
+static __always_inline unsigned long long native_read_cr2(void)
+{
+    	unsigned long long val;
+    	__asm__ volatile("mov %%cr2, %0" : "=r"(val));
+    	return val;
+}
+
+static __always_inline unsigned long long native_read_cr3(void)
+{
+    	unsigned long long val;
+    	__asm__ volatile("mov %%cr3, %0" : "=r"(val));
+    	return val;
+}
+
+static __always_inline unsigned long long native_read_cr4(void)
+{
+    	unsigned long long val;
+    	__asm__ volatile("mov %%cr4, %0" : "=r"(val));
+    	return val;
+}
+
+static __always_inline unsigned long long native_read_cr8(void)
+{
+    	unsigned long long val;
+    	__asm__ volatile("mov %%cr8, %0" : "=r"(val));
+    	return val;
+}
 
 #endif // X86_64_PROCESSOR_H

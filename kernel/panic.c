@@ -1,9 +1,11 @@
 #include <asm/desc.h>
-#include <asm/processor.h>
+#include <asm/ptrace.h>
 
 #include <emerald/string.h>
 #include <emerald/printk.h>
 #include <emerald/fbcon.h>
+#include <emerald/kdebug.h>
+#include <emerald/compiler.h>
 
 static bool panicking = false;
 
@@ -15,21 +17,26 @@ static bool panicking = false;
         __asm__ volatile("int $64");
 
         /* Prevent compiler from throwing -Winvalid-noreturn */
-        __builtin_unreachable();
+        unreachable();
 }
 
 /* prints an error message and registers if non-NULL. Halts PC */
-[[noreturn]] void panic(const char *msg, struct hw_regs *regs)
+[[noreturn]] void panic(const char *msg, struct pt_regs *regs)
 {
         /* Prevent recursive calls to panic() */
-        if (panicking)
+        if (unlikely(panicking))
                 emergency_restart();
         panicking = true;
 
         fbcon_clear();
         printk("KERNEL PANIC!\n");
         printk("%s\n\n", msg);
-        /* TODO: Register Dump */
+        
+        if (regs) {
+                show_regs(regs);
+                printk("\n");
+        }
+        dump_stack(regs);
 
         /* Halt CPU */
         __asm__ volatile ("cli");

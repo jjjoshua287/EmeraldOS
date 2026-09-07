@@ -10,9 +10,10 @@
 /* temporary function for logging progress of kernel */
 static void log_progress()
 {
-        printk("=============== Current Progress =================\n");
+        printk("================ Current Progress ==================\n");
         printk(" 1. Working Interrupt Handlers for CPU exceptions\n");
         printk(" 2. Validated RSDT/XSDT\n");
+        printk(" 3. Use the Kernel's stack instead of UEFI's stack.\n");
 }
 
 int kernel_main()
@@ -21,6 +22,10 @@ int kernel_main()
         log_progress();
         printk("\n");
         run_dev_tests();
+
+        #if CFG_PANIC
+        __asm__ volatile("ud2");
+        #endif
 
         while (1);
         return 0;
@@ -38,7 +43,6 @@ int start_kernel(void)
         acpi_boot_init(&boot);
         init_fbcon(&boot.info);
 #endif
-        
         kernel_main();
         return 0;
 }

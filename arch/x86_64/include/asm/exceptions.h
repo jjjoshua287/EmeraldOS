@@ -31,6 +31,4 @@
 #define EXC_VC          29  /* VMM Communication Exception */
 #define EXC_SX          30  /* Security Exception */
 
-/* Vectors 22-27 are also Intel Reserved */
-
 #endif
