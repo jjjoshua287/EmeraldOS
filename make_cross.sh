@@ -86,7 +86,7 @@ MULTILIB_DIRNAMES += no-red-zone
 EOF
 
 # Point config.gcc at TMAKE_FRAGMENT
-if ! grep -q "t-x86_64-elf" "$GCC_CONFIG"; then
+if ! grep -A1 '^x86_64-\*-elf\*)' "$GCC_CONFIG" | grep -q 't-x86_64-elf'; then
     sed -i '/^x86_64-\*-elf\*/a\    tmake_file="${tmake_file} i386/t-x86_64-elf"' "$GCC_CONFIG"
 fi
 
@@ -101,7 +101,9 @@ make -j "$JOBS" all-gcc
 make -j "$JOBS" all-target-libgcc
 make install-gcc
 make install-target-libgcc
+
 cd ..
+rm -rf toolchain
 
 echo "$TARGET Cross compiler built at $PREFIX/bin"
 exit 0
