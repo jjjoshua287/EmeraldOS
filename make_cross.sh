@@ -43,19 +43,16 @@ wget -nc "${GNU_FTP}/gnu-keyring.gpg"
 
 echo "Downloading Source Code for Binutils and GCC..."
 # --- binutils ---
-wget -nc "${GNU_FTP}/${BINUTILS_TAR}"
-wget -nc "${GNU_FTP}/${BINUTILS_TAR}.sig"
+wget -nc "${GNU_FTP}/binutils/${BINUTILS_TAR}"
+wget -nc "${GNU_FTP}/binutils/${BINUTILS_TAR}.sig"
 
 # --- gcc ---
 wget -nc "${GNU_FTP}/gcc/${GCC_DIR}/${GCC_TAR}"
 wget -nc "${GNU_FTP}/gcc/${GCC_DIR}/${GCC_TAR}.sig"
 
 echo "Verifying signatures..."
-gpg --no-default-keyring --keyring gnu-keyring.gpg \
-    --verify "${BINUTILS_TAR}.sig" "${BINUTILS_TAR}"
-
-gpg --no-default-keyring --keyring gnu-keyring.gpg \
-    --verify "${GCC_TAR}.sig" "${GCC_TAR}"
+gpgv --keyring "$(pwd)/gnu-keyring.gpg" "${BINUTILS_TAR}.sig" "${BINUTILS_TAR}"
+gpgv --keyring "$(pwd)/gnu-keyring.gpg" "${GCC_TAR}.sig" "${GCC_TAR}"
 
 # Final Preparations
 mkdir -p "$PREFIX"
