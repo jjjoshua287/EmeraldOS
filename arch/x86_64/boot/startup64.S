@@ -27,7 +27,8 @@ switch_stack:
     leaq kernel_stack+stack_top(%rip), %rsp
     andq $~0xF, %rsp
     xorq %rbp, %rbp
-    subq $0x20, %rsp /* Windows x64 ABI requires shadow space for calls */
+
+enter_kernel:
     leaq start_kernel(%rip), %rax
     call *%rax
     ud2

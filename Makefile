@@ -1,66 +1,103 @@
 VERSION = 0.0.2
 GIT_HASH = $(shell git rev-parse --short HEAD)
 
-CC = clang
-LINKER = lld-link
+# Configuration
 ARCH = x86_64
+ARCH_DIR = arch/$(ARCH)
+TRIPLE = x86_64-elf
+CROSS_CC = /opt/cross/bin
+BUILD = build
 
-CFLAGS = -target x86_64-pc-win32 \
-         -std=gnu23 \
-         -ffreestanding \
-         -fshort-wchar \
-		 -fno-omit-frame-pointer \
-         -mno-red-zone \
-		 -Wno-msvc-not-found \
-         -isystem $(CURDIR)/include \
-         -isystem $(CURDIR)/arch/$(ARCH)/include/
+# Sub-makefiles could define rules; keep `all` as the default goal.
+.DEFAULT_GOAL := all
 
-CFLAGS += -DCFG_INIT_FBCON_EARLY
+# Shared Compiler Flags
+# -MMD -MP emit .d files so editing a header rebuilds what includes it.
+CFLAGS = -std=gnu23 -ffreestanding -fno-omit-frame-pointer -mno-red-zone \
+		 -isystem $(CURDIR)/include -MMD -MP
 
-LDFLAGS = /subsystem:efi_application \
-          /entry:efi_main \
-          /nodefaultlib
+# --- EFI Phase (stub: clang, MS ABI, PE/COFF) ---
+EFI_CC = clang
+EFI_LINKER = lld-link
 
-TARGET = BOOTX64.EFI
-ESP = esp/EFI/BOOT
+EFI_CFLAGS := -target x86_64-pc-win32 \
+			  -fshort-wchar \
+			  -Wno-msvc-not-found
+EFI_CFLAGS += $(CFLAGS)
+
+EFI_LDFLAGS = /subsystem:efi_application \
+			  /entry:efi_main \
+			  /nodefaultlib
+EFI_TARGET = BOOTX64.EFI
+EFI_BUILD = $(BUILD)/efi
+
+# kernel_blob.S .incbin's the kernel ELF. Add enter_kernel.S here at step 7.
+EFI_SRCS = drivers/efi/efistub.c drivers/efi/kernel_blob.S lib/string.c
+EFI_OBJS := $(addprefix $(EFI_BUILD)/,$(patsubst %.S,%.o,$(EFI_SRCS:.c=.o)))
+
+# --- ELF Kernel (cross gcc, SysV ABI) ---
+KERNEL_CC = $(CROSS_CC)/$(TRIPLE)-gcc
+KERNEL_LINKER = $(CROSS_CC)/$(TRIPLE)-ld
+
+KERNEL_TARGET = emeraldos.elf
+KERNEL_BUILD = $(BUILD)/kernel
+
+KERNEL_CFLAGS := $(CFLAGS)
+KERNEL_CFLAGS += -isystem $(CURDIR)/$(ARCH_DIR)/include/
+KERNEL_CFLAGS += -DCFG_INIT_FBCON_EARLY
+KERNEL_CFLAGS += -mgeneral-regs-only -fno-stack-protector
+# when I transition the kernel to a higher half kernel: KERNEL_CFLAGS += -mcmodel=kernel
+
+KERNEL_LDFLAGS = -T linker.ld -nostdlib -z max-page-size=0x1000
 
 # Initialize global lists to populate via sub-makefiles
-SRCS := 
-SUBDIRS = kernel lib drivers
-ARCH_DIR = arch/$(ARCH)
+SRCS :=
 
 include $(ARCH_DIR)/Makefile
 include kernel/Makefile
 include lib/Makefile
 include drivers/Makefile
 
-# Compute object files from the collected sources
-OBJS := $(filter %.o, $(SRCS:.c=.o) $(SRCS:.S=.o))
+# compute kernel object files from the collected sources
+KERNEL_OBJS := $(addprefix $(KERNEL_BUILD)/,$(patsubst %.S,%.o,$(SRCS:.c=.o)))
 
-all: $(TARGET) $(ESP)/$(TARGET)
+# --- Rules ---
+.PHONY: all clean
 
-$(TARGET): $(OBJS)
-	$(LINKER) $(LDFLAGS) /out:$(TARGET) $(OBJS)
+all: $(EFI_TARGET)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+# Final image: stub objects plus the embedded kernel blob.
+$(EFI_TARGET): $(EFI_OBJS)
+	$(EFI_LINKER) $(EFI_LDFLAGS) /out:$@ $^
 
-%.o: %.S
-	$(CC) $(CFLAGS) -x assembler-with-cpp -c $< -o $@
+# The blob object embeds emeraldos.elf via .incbin. Make can't see that
+# dependency on its own, so state it here. This is what forces the kernel
+# to be built (and rebuilt) before the stub is linked.
+$(EFI_BUILD)/drivers/efi/kernel_blob.o: $(KERNEL_TARGET)
+$(EFI_BUILD)/drivers/efi/kernel_blob.o: EFI_CFLAGS += -I$(CURDIR)
 
-$(ESP)/$(TARGET): $(TARGET)
-	mkdir -p $(ESP)
-	cp $(TARGET) $(ESP)/$(TARGET)
+$(KERNEL_TARGET): $(KERNEL_OBJS) linker.ld
+	$(KERNEL_LINKER) $(KERNEL_LDFLAGS) -o $@ $(KERNEL_OBJS)
 
-run: all
-	qemu-system-x86_64 \
-		-bios /usr/share/edk2/ovmf/OVMF_CODE.fd \
-		-drive format=raw,file=fat:rw:esp/ \
-		-vga std \
-		-net none
+# Stub objects: clang, MS ABI
+$(EFI_BUILD)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(EFI_CC) $(EFI_CFLAGS) -c $< -o $@
+
+$(EFI_BUILD)/%.o: %.S
+	@mkdir -p $(dir $@)
+	$(EFI_CC) $(EFI_CFLAGS) -c $< -o $@
+
+# Kernel objects: cross gcc, SysV ABI
+$(KERNEL_BUILD)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(KERNEL_CC) $(KERNEL_CFLAGS) -c $< -o $@
+
+$(KERNEL_BUILD)/%.o: %.S
+	@mkdir -p $(dir $@)
+	$(KERNEL_CC) $(KERNEL_CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET)
-	rm -rf esp/
+	rm -rf $(BUILD) $(KERNEL_TARGET) $(EFI_TARGET)
 
-.PHONY: all run clean $(SUBDIRS)
+-include $(EFI_OBJS:.o=.d) $(KERNEL_OBJS:.o=.d)

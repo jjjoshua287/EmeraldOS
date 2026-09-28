@@ -32,16 +32,16 @@ int kernel_main()
 }
 
 // entry point into kernel, ExitBootServices should be called before entering this
-int start_kernel(void)
+int start_kernel(struct boot_info *boot)
 {
         setup_gdt();
         setup_idt();
 #ifdef CFG_INIT_FBCON_EARLY
-        init_fbcon(&boot.info);
-        acpi_boot_init(&boot);
+        init_fbcon(&boot->info);
+        acpi_boot_init(boot);
 #else
-        acpi_boot_init(&boot);
-        init_fbcon(&boot.info);
+        acpi_boot_init(boot);
+        init_fbcon(&boot->info);
 #endif
         kernel_main();
         return 0;

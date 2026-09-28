@@ -34,9 +34,9 @@ static bool validate_rsdp(struct acpi_table_rsdp *rsdp)
 /* The kernel panics if acpi fails to init for easier debugging purposes. 
  * In the future, it will disable acpi instead of panicking.
  */
-void acpi_boot_init()
+void acpi_boot_init(struct boot_info *boot)
 {
-        struct acpi_table_rsdp *rsdp = (struct acpi_table_rsdp *)&boot.rsdp;
+        struct acpi_table_rsdp *rsdp = (struct acpi_table_rsdp *)boot->rsdp;
         if (validate_rsdp(rsdp))
                 panic("Failure to initialize acpi, RSDP is invalid", NULL);
  

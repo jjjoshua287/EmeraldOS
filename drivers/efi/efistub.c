@@ -101,8 +101,6 @@ static inline void fill_boot_info()
         boot.mem = hw_mem;
 }
 
-extern void start_64(void);
-
 efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
         efi_status_t status = setup_graphics_output_protocol(SystemTable);
@@ -122,13 +120,13 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
                 rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)ACPI_10_TABLE_GUID);
 
         boot.rsdp = rsdp;
-        fill_boot_info();
-                
         status = handle_exit(ImageHandle, SystemTable);
         if (EFI_ERROR(status))
                 return status;
 
+        fill_boot_info();
+
         /* Only RuntimeServices exist now. */
-        start_64();
+        /* infinite loop here until we write an ELF parser. */
         return EFI_SUCCESS;
 }
