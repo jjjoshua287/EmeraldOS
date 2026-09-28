@@ -2,5 +2,5 @@
   .global kernel_elf_start
   .global kernel_elf_end
   kernel_elf_start:
-      .incbin "kernel.elf"
+      .incbin "emeraldos.elf"
   kernel_elf_end:
