@@ -1,6 +1,7 @@
 #include <emerald/efi.h>
 #include <emerald/string.h>
 #include <emerald/runtime.h>
+#include <emerald/compiler.h>
 
 #include "efistub.h"
 
@@ -101,6 +102,9 @@ static inline void fill_boot_info()
         boot.mem = hw_mem;
 }
 
+/* Kernel ELF expects System V ABI, not MS ABI like UEFI does. */
+typedef void (*kernel_entry_t)(struct boot_info *boot) __attribute__((sysv_abi));
+
 efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
         efi_status_t status = setup_graphics_output_protocol(SystemTable);
@@ -119,14 +123,22 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
         if (rsdp == NULL)
                 rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)ACPI_10_TABLE_GUID);
 
-        boot.rsdp = rsdp;
-        status = handle_exit(ImageHandle, SystemTable);
-        if (EFI_ERROR(status))
-                return status;
+        kernel_entry_t entry = (kernel_entry_t)load_kernel();
+        if (likely(entry)) {
+                status = handle_exit(ImageHandle, SystemTable);
+                if (EFI_ERROR(status))
+                        return status;
 
-        fill_boot_info();
+                /* Give the Kernel the struct boot_info it expects and call its entry point. */
+                boot.rsdp = rsdp;
+                fill_boot_info();
+                entry(&boot);
+        } else {
+                SystemTable->ConOut->OutputString(SystemTable->ConOut, L"ERROR: Invalid ELF\n");
+                // Infinite Loop
+                while (1) 
+                        asm volatile("hlt");
+        }
 
-        /* Only RuntimeServices exist now. */
-        /* infinite loop here until we write an ELF parser. */
-        return EFI_SUCCESS;
+        unreachable();
 }

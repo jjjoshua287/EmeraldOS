@@ -27,9 +27,6 @@ struct hw_memory_map {
         u32 version;
 };
 
-/* forward reference */
-efi_memory_descriptor;
-
 /** struct boot_info - boot information for the kernel passed by the EFI stub
  * @info: GOP framebuffer info
  * @mem:  hardware memory map info

@@ -21,10 +21,9 @@ static bool elf_valid(struct elf64_hdr *hdr)
         /* validate magic number and class */
         if (unlikely(hdr == NULL || memcmp(hdr->e_ident, ELFMAG, SELFMAG)))
                 return false;   // not an ELF file
-        if (unlikely(hdr->e_ident[EI_CLASS] == ELFCLASSNONE))
+        if (unlikely(hdr->e_ident[EI_CLASS] != ELFCLASS64))
                 return false;   // invalid class
-
-        return true;
+        return (hdr->e_entry);
 }
 
 void *load_kernel(void)
