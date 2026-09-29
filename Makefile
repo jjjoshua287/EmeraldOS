@@ -32,7 +32,9 @@ EFI_TARGET = BOOTX64.EFI
 EFI_BUILD = $(BUILD)/efi
 
 # kernel_blob.S .incbin's the kernel ELF. Add enter_kernel.S here at step 7.
-EFI_SRCS = drivers/efi/efistub.c drivers/efi/kernel_blob.S lib/string.c
+EFI_SRCS := lib/string.c
+include drivers/efi/Makefile
+
 EFI_OBJS := $(addprefix $(EFI_BUILD)/,$(patsubst %.S,%.o,$(EFI_SRCS:.c=.o)))
 
 # --- ELF Kernel (cross gcc, SysV ABI) ---

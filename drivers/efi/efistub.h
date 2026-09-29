@@ -3,6 +3,9 @@
 
 #include <emerald/efi.h>
 
+/* helper function for efistub.c */
+void *load_kernel(void);
+
 extern const efi_system_table_t *efi_system_table;
 
 struct efi_boot_services {

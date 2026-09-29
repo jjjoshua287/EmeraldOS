@@ -203,9 +203,9 @@ typedef struct elf32_phdr {
 	Elf32_Word p_align;
 } Elf32_Phdr;
 
-typedef struct {
+typedef struct elf64_phdr {
 	Elf64_Word p_type;	/* Type of segment */
-	Elf64_Word p_flags;	/**/
+	Elf64_Word p_flags;	/* Segment Flags */
 	Elf64_Off p_offset;	/* Segment file offset */
 	Elf64_Addr p_vaddr;	/* Segment virtual address */
 	Elf64_Addr p_paddr;	/* Segment physical address */
@@ -312,6 +312,7 @@ typedef struct elf64_shdr {
 #define ELFMAG2	'L'
 #define ELFMAG3	'F'
 #define ELFMAG	"\177ELF"
+#define SELFMAG 4
 
 /* EI_CLASS */
 #define ELFCLASSNONE	0
