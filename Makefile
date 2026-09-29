@@ -15,8 +15,6 @@ CFLAGS = -target x86_64-pc-win32 \
          -isystem $(CURDIR)/include \
          -isystem $(CURDIR)/arch/$(ARCH)/include/
 
-CFLAGS += -DCFG_INIT_FBCON_EARLY
-
 LDFLAGS = /subsystem:efi_application \
           /entry:efi_main \
           /nodefaultlib

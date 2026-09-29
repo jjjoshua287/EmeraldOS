@@ -1,4 +1,3 @@
-#include <asm/setup.h>
 #include <asm/desc.h>
 #include <asm/desc_defs.h>
 #include <asm/segment.h>
@@ -44,6 +43,9 @@ static void gdt_init(void)
 		write_gdt_entry(gdt, i, &descs[i], 0);
 	tss_init();
 }
+
+/* Assembly stub to reload segment selectors. */
+extern void reload_segments(void);
 
 /* Setup the GDT */
 void setup_gdt(void)

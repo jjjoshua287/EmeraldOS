@@ -1,6 +1,5 @@
 #include <acpi/acpi.h>
 
-#include <emerald/panic.h>
 #include <emerald/runtime.h>
 #include <emerald/types.h>
 #include <emerald/string.h>
@@ -31,14 +30,11 @@ static bool validate_rsdp(struct acpi_table_rsdp *rsdp)
 #define xsdt_entries(len) sdt_entries((len), ACPI_XSDT_ENTRY_SIZE >> 3)
 #define rsdt_entries(len) sdt_entries((len), ACPI_RSDT_ENTRY_SIZE >> 3)
 
-/* The kernel panics if acpi fails to init for easier debugging purposes. 
- * In the future, it will disable acpi instead of panicking.
- */
-void acpi_boot_init()
+void acpi_boot_init(void *sys_desc_ptr)
 {
-        struct acpi_table_rsdp *rsdp = (struct acpi_table_rsdp *)&boot.rsdp;
+        struct acpi_table_rsdp *rsdp = (struct acpi_table_rsdp *)sys_desc_ptr;
         if (validate_rsdp(rsdp))
-                panic("Failure to initialize acpi, RSDP is invalid", NULL);
+                return;
  
         struct acpi_table_header *hdr;
 	if (rsdp->revision >= 2 && rsdp->xsdt_physical_addr != 0)
@@ -46,5 +42,5 @@ void acpi_boot_init()
 	else
 		hdr = (struct acpi_table_header *)(uintptr_t)rsdp->rsdt_physical_addr;
 	if (!acpi_validate_table(hdr))
-		panic("RSDT/XSDT checksum failed", NULL);
+		return;
 }
