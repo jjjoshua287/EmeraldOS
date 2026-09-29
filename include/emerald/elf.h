@@ -155,17 +155,17 @@ typedef struct elf32_hdr {
 typedef struct elf64_hdr {
 	unsigned char e_ident[EI_NIDENT]; /* ELF Magic Number */
 	Elf64_Half e_type;
-	Elf64_Half e_machine;
+	Elf64_Half e_machine;	/* Target Architecture */
 	Elf64_Word e_version;
 	Elf64_Addr e_entry;	/* entry point virtual address */
-	Elf64_Off e_phoff;	/* Program Header table file offset */
-	Elf64_Off e_shoff;	/* Section header table file offset */
+	Elf64_Off e_phoff;	/* Program Header Table file offset */
+	Elf64_Off e_shoff;	/* Section Header Table file offset */
 	Elf64_Word e_flags;
 	Elf64_Half e_ehsize;
-	Elf64_Half e_phentsize;
-	Elf64_Half e_phnum;
-	Elf64_Half e_shentsize;
-	Elf64_Half e_shnum;
+	Elf64_Half e_phentsize;	/* Size of Program Header Table entries */
+	Elf64_Half e_phnum;	/* Number of entries in Program Header Table */
+	Elf64_Half e_shentsize;	/* Size of Section Header Table entries */
+	Elf64_Half e_shnum;	/* Number of entries in Section Header Table */
 	Elf64_Half e_shstrndx;
 } Elf64_Ehdr;
 
