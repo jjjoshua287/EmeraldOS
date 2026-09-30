@@ -104,6 +104,7 @@ static inline void fill_boot_info()
 
 /* Kernel ELF expects System V ABI, not MS ABI like UEFI does. */
 typedef void (*kernel_entry_t)(struct boot_info *boot) __attribute__((sysv_abi));
+void *load_kernel(struct efi_boot_services *gBS);
 
 efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
@@ -123,8 +124,9 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
         if (rsdp == NULL)
                 rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)ACPI_10_TABLE_GUID);
 
-        kernel_entry_t entry = (kernel_entry_t)load_kernel();
-        if (likely(entry)) {
+        kernel_entry_t entry = (kernel_entry_t)load_kernel(SystemTable->BootServices);
+
+        if (likely(entry != NULL)) {
                 status = handle_exit(ImageHandle, SystemTable);
                 if (EFI_ERROR(status))
                         return status;

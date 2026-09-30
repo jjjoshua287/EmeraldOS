@@ -3,9 +3,6 @@
 
 #include <emerald/efi.h>
 
-/* helper function for efistub.c */
-void *load_kernel(void);
-
 extern const efi_system_table_t *efi_system_table;
 
 struct efi_boot_services {
@@ -16,7 +13,12 @@ struct efi_boot_services {
         void *RestoreTPL;
         
         // Memory Services
-        void *AllocatePages;
+        efi_status_t (*AllocatePages)(
+                efi_allocate_type Type,
+                efi_memory_type MemoryType,
+                u64 Pages,
+                efi_phys_addr_t *Memory
+        );
         void *FreePages;
         efi_status_t (*GetMemoryMap)(
                 u64                   *MemoryMapSize,
