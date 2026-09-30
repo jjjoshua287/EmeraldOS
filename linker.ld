@@ -2,7 +2,7 @@ ENTRY(start_64)
 
 PHDRS
 {
-    text   PT_LOAD FLAGS(5);    /* R+W */
+    text   PT_LOAD FLAGS(5);    /* R+X */
     rodata PT_LOAD FLAGS(4);    /* R   */
     data   PT_LOAD FLAGS(6);    /* R+W */
 }
@@ -24,12 +24,13 @@ SECTIONS
         *(.data .data.*) 
     } :data
   
-    .bss : {
+    .bss : ALIGN(8) {
         __bss_start = .;
         *(.bss .bss.*)
         *(COMMON)
-        __bss_end = .;
-    } :data
+        . = ALIGN(8);
+        __bss_stop = .;
+    }
 
     . = ALIGN(4K);
     __kernel_end = .;
