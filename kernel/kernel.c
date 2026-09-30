@@ -19,9 +19,9 @@ static void log_progress()
 int kernel_main()
 {
         printk("EmeraldOS Kernel v%s\n\n", KERNEL_VERSION);
-        log_progress();
-        printk("\n");
-        run_dev_tests();
+        //log_progress();
+        printk("Hello from ELF Kernel!\n");
+        //run_dev_tests();
 
         #if CFG_PANIC
         __asm__ volatile("ud2");

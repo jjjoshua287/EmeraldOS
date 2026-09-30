@@ -6,7 +6,10 @@ ARCH = x86_64
 ARCH_DIR = arch/$(ARCH)
 TRIPLE = x86_64-elf
 CROSS_CC = /opt/cross/bin
+
+# Directories
 BUILD = build
+ESP = esp/EFI/BOOT
 
 # Sub-makefiles could define rules; keep `all` as the default goal.
 .DEFAULT_GOAL := all
@@ -64,7 +67,7 @@ include drivers/Makefile
 KERNEL_OBJS := $(addprefix $(KERNEL_BUILD)/,$(patsubst %.S,%.o,$(SRCS:.c=.o)))
 
 # --- Rules ---
-.PHONY: all clean
+.PHONY: all clean run
 
 all: $(EFI_TARGET)
 
@@ -98,6 +101,15 @@ $(KERNEL_BUILD)/%.o: %.c
 $(KERNEL_BUILD)/%.o: %.S
 	@mkdir -p $(dir $@)
 	$(KERNEL_CC) $(KERNEL_CFLAGS) -c $< -o $@
+
+run: all
+	mkdir -p $(ESP)
+	cp $(EFI_TARGET) $(ESP)/
+
+	qemu-system-x86_64	\
+		-bios /usr/share/edk2/ovmf/OVMF_CODE.fd	\
+		-drive format=raw,file=fat:rw:esp/	\
+		-vga std -net none
 
 clean:
 	rm -rf $(BUILD) $(KERNEL_TARGET) $(EFI_TARGET)
