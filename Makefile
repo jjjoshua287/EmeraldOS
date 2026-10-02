@@ -34,7 +34,6 @@ EFI_LDFLAGS = /subsystem:efi_application \
 EFI_TARGET = BOOTX64.EFI
 EFI_BUILD = $(BUILD)/efi
 
-# kernel_blob.S .incbin's the kernel ELF. Add enter_kernel.S here at step 7.
 EFI_SRCS := lib/string.c
 include drivers/efi/Makefile
 
@@ -51,7 +50,7 @@ KERNEL_CFLAGS := $(CFLAGS)
 KERNEL_CFLAGS += -isystem $(CURDIR)/$(ARCH_DIR)/include/
 KERNEL_CFLAGS += -DCFG_INIT_FBCON_EARLY
 KERNEL_CFLAGS += -mgeneral-regs-only -fno-stack-protector
-# when I transition the kernel to a higher half kernel: KERNEL_CFLAGS += -mcmodel=kernel
+KERNEL_CFLAGS += -mcmodel=kernel
 
 KERNEL_LDFLAGS = -T linker.ld -nostdlib -z max-page-size=0x1000
 

@@ -1,6 +1,8 @@
-.section .text
+#include <emerald/init.h>
 
-#include <asm/stack.h>
+.section .text
+__HEAD
+.code64
 
 .set stack_top, KERNEL_STACK_SIZE
 
@@ -10,7 +12,7 @@
  * only occur after the kernel is complete for the x86_64 architecture.
  */
 .extern start_kernel
-.extern kernel_stack
+.extern kernel_stack_top
 
 .global start_64
 .type start_64, @function
@@ -36,9 +38,8 @@ start_64:
     shrq $3, %rcx
     rep stosq
 
-/* Replace the now-invalid UEFI stack to a kernel-provided one */
-switch_stack:
-    leaq kernel_stack+stack_top(%rip), %rsp
+    /* Replace the now-invalid UEFI stack to a kernel-provided one */
+    leaq kernel_stack_top(%rip), %rsp
     andq $~0xF, %rsp
     xorq %rbp, %rbp
 
@@ -46,10 +47,6 @@ switch_stack:
 enter_kernel:
     /* restore the boot_info pointer */
     movq %r12, %rdi
-    
-    /* rsp must sit on a 16-byte boundary plus an 8-byte offset before CALL instructions */
-    /*subq $8, %rsp*/
-    
     leaq start_kernel(%rip), %rax
     call *%rax
     ud2
