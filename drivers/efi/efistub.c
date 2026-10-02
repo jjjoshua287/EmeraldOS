@@ -127,6 +127,7 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
         kernel_entry_t entry = (kernel_entry_t)load_kernel(SystemTable->BootServices);
 
         if (likely(entry != NULL)) {
+                SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Loaded Kernel");
                 status = handle_exit(ImageHandle, SystemTable);
                 if (EFI_ERROR(status))
                         return status;

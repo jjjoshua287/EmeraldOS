@@ -13,6 +13,10 @@ SECTIONS
         *(.head.text)
     }
 
+    .head.data : {
+        *(.head.data)
+    }
+
     /* Higher half VMA here */
     . += KERNEL_VMA;
     

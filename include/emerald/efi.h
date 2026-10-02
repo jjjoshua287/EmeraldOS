@@ -42,9 +42,9 @@ typedef struct {
 
 #define EFI_MEMORY_DESCRIPTOR_VERSION 1
 
-#define EFI_PAGE_SIZE   0x1000
 #define EFI_PAGE_SHIFT  12
 #define EFI_PAGE_MASK   0xFFF
+#define EFI_PAGE_SIZE   (1UL << EFI_PAGE_SHIFT)
 
 #define EFI_SIZE_TO_PAGES(Size) (((Size) >> EFI_PAGE_SHIFT) + (((Size) & EFI_PAGE_MASK) ? 1 : 0))
 
