@@ -13,6 +13,9 @@ early_pdpt:
 early_pd:
     .zero 4096
 
+early_pd2:
+    .zero 4096
+
 .balign 8
 early_gdt_start:
     .quad 0x0
@@ -84,6 +87,11 @@ start_64:
     movq %rax, (510 * 8)(%rbx)      /* early_pdpt[510] */
     movq %rax, 0(%rbx)              /* early_pdpt[0] */
 
+    /* map the framebuffer */
+    leaq early_pd2(%rip), %rax
+    orq $0x3, %rax
+    movq %rax, (2 * 8)(%rbx)        /* early_pdpt[2] */
+
     leaq early_pd(%rip), %rdi
     xorq %rcx, %rcx     /* Index counter */
     xorq %rsi, %rsi     /* Physical address accumulator */
@@ -96,6 +104,20 @@ start_64:
     incq %rcx
     cmpq $512, %rcx
     jne .map_kernel_pages
+
+    leaq early_pd2(%rip), %rdi
+    xorq %rcx, %rcx
+    movq $0x80000000, %rsi
+
+/* HACK: Do it dynamically once I implement a Page Table mapper */
+.map_mmio_pages:
+    movq %rsi, %rbx
+    orq $0x9B, %rbx     /* Present + Read/Write + PWT + PCD + Accessed */
+    mov %rbx, (%rdi, %rcx, 8)
+    addq $0x200000, %rsi
+    incq %rcx
+    cmpq $512, %rcx
+    jne .map_mmio_pages
 
     /* set CR3 to point at early_pml4 */
     leaq early_pml4(%rip), %rax
