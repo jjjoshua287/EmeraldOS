@@ -19,7 +19,6 @@ SECTIONS
 
     /* Higher half VMA here */
     . += KERNEL_VMA;
-    
 
     .text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VMA) { 
         *(.text .text.*)
@@ -44,7 +43,8 @@ SECTIONS
         __bss_stop = .;
     }
 
-    .stack (NOLOAD) : AT(ADDR(.stack) - KERNEL_VMA) ALIGN(16) {
+    .stack (NOLOAD) : AT(ADDR(.stack) - KERNEL_VMA) {
+        . = ALIGN(16);
         kernel_stack_bottom = .;
         . += KERNEL_STACK_SIZE;
         . = ALIGN(16);

@@ -1,34 +1,37 @@
-.section .head.data, "aw", @progbits
-.align 4096
-
-/* early page tables */
-.global early_pml4
-early_pml4:
-    .fill 512, 8, 0
-
-.global early_pdpt
-early_pdpt:
-    .fill 512, 8, 0
-
-.global early_pd
-early_pd:
-    /* Map the first 2 MiB of physical memory.
-     * Flags:
-     *  Bit 0: Present
-     *  Bit 1: Writable
-     *  But 7: Page Size
-     * set the Page Size (PS) bit, which is bit 7 to use 2 MiB pages for early page tables
-     */
-     .quad 0x83
-     .fill 511, 8, 0
-
-.section .text
 #include <asm/segment.h>
+#include <asm/desc_defs.h>
 #include <emerald/init.h>
 
+.section .head.data, "aw", @progbits
+
+/* early page tables */
+.balign 4096
+early_pml4:
+    .zero 4096
+early_pdpt:
+    .zero 4096
+early_pd:
+    .zero 4096
+
+.balign 8
+early_gdt_start:
+    .quad 0x0
+    .quad GDT_ENTRY(DESC_CODE64, 0, 0xFFFFF)
+    .quad GDT_ENTRY(DESC_DATA64, 0, 0xFFFFF)
+    .quad GDT_ENTRY(DESC_CODE64 | DESC_USER, 0, 0xFFFFF)
+    .quad GDT_ENTRY(DESC_DATA64 | DESC_USER, 0, 0xFFFFF)
+early_gdt_end:
+
+.balign 4
+early_gdt_desc:
+    .word (early_gdt_end - early_gdt_start - 1)
+    .quad early_gdt_start
+
+.section .text
 __HEAD
 .code64
 
+.set KERNEL_CS, __KERNEL_CS
 .set KERNEL_DS, __KERNEL_DS
 
 /* 
@@ -45,43 +48,60 @@ start_64:
     cli
     cld     /* SysV requires the Direction flag to be clear on function entry */ 
 
+    /* save the boot_info pointer passed from UEFI */
+    movq %rdi, %r12
+
+.reload_gdt:
+    lgdt early_gdt_desc(%rip)
+
     /* setup kernel data segments */
-    mov $KERNEL_DS, %ax
-    mov %ax, %ds
-    mov %ax, %es
-    mov %ax, %ss
+    movw $KERNEL_DS, %ax
+    movw %ax, %ds
+    movw %ax, %es
+    movw %ax, %ss
+    movw %ax, %fs
+    movw %ax, %gs
 
-    /* fs and gs are left as NULL selectors for per-CPU data in the future */
-    xor %ax, %ax
-    mov %ax, %fs
-    mov %ax, %gs
+    /* reload data segment registers */
+    pushq $KERNEL_CS
+    leaq .setup_pgt(%rip), %rax
+    pushq %rax
+    lretq
 
+.setup_pgt:
     /* setup initial page tables */
     leaq early_pdpt(%rip), %rax
-    orq $0x3, %rax
-    leaq early_pml4(%rip), %rbx     /* PML4[0] */
-    movq %rax, 0(%rbx)
-    movq %rax, (511 * 8)(%rbx)      /* PML4[511] */
+    orq $0x3, %rax                  /* Present (0x1) + Read/Write (0x2) */
+    leaq early_pml4(%rip), %rbx
+    movq %rax, (511 * 8)(%rbx)      /* Store into PML4[511] for higher-half */
     
-    /* write early_pd into early_pdpt[0] and early_pdpt[510] */
+    movq %rax, 0(%rbx)  /* store into PML4[0] so CPU doesn't crash when we reload CR3 */
+
+    /* link early_pdpt[510] and early_pdpt[0] to PD */
     leaq early_pd(%rip), %rax
-    orq $0x3, %rax
+    orq $0x3, %rax                  /* Present + Read/Write */
     leaq early_pdpt(%rip), %rbx
-    movq %rax, 0(%rbx)              /* early_pdpt[0]   */
     movq %rax, (510 * 8)(%rbx)      /* early_pdpt[510] */
+    movq %rax, 0(%rbx)              /* early_pdpt[0] */
+
+    leaq early_pd(%rip), %rdi
+    xorq %rcx, %rcx     /* Index counter */
+    xorq %rsi, %rsi     /* Physical address accumulator */
+
+.map_kernel_pages:
+    movq %rsi, %rbx
+    orq $0x83, %rbx             /* Present + Read/Write + Page Size */
+    movq %rbx, (%rdi, %rcx, 8)  /* early_pd[rcx] = rbx */
+    addq $0x200000, %rsi
+    incq %rcx
+    cmpq $512, %rcx
+    jne .map_kernel_pages
 
     /* set CR3 to point at early_pml4 */
     leaq early_pml4(%rip), %rax
     movq %rax, %cr3
 
-    /* save the boot_info pointer passed from UEFI */
-    movq %rdi, %r12
-
-    /* pivot stack pointer to the higher half */
-    leaq kernel_stack_top(%rip), %rsp
-    andq $~0xF, %rsp
-    xorq %rbp, %rbp
-
+.prepare_for_entry:
     /* Clear BSS */
     xorl %eax, %eax
     leaq __bss_start(%rip), %rdi
@@ -90,10 +110,15 @@ start_64:
     shrq $3, %rcx
     rep stosq
 
-/* entry point: start_kernel */
-enter_kernel:
+    /* Pivot the stack pointer into virtual address space */
+    movabsq $kernel_stack_top, %rsp
+    xor %rbp, %rbp
+
     /* restore the boot_info pointer */
     movq %r12, %rdi
-    leaq start_kernel(%rip), %rax
+
+/* entry point: start_kernel */
+enter_kernel:
+    movabsq $start_kernel, %rax
     call *%rax
     ud2

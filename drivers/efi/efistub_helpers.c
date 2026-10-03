@@ -16,16 +16,16 @@ static efi_status_t load_pht(efi_boot_services_t *gBS, Elf64_Off phoff,
                 struct elf64_phdr *phdr = (struct elf64_phdr *)(kernel_elf_start + phoff + i * ph_entry_size);
                 if (phdr->p_type != PT_LOAD)
                         continue;
-                
+
+                efi_phys_addr_t addr = phdr->p_paddr;
                 efi_status_t status = gBS->AllocatePages(
                         AllocateAddress, EfiLoaderData,
-                        EFI_SIZE_TO_PAGES(phdr->p_memsz),
-                        (efi_phys_addr_t *)&phdr->p_paddr
-                );
+                        EFI_SIZE_TO_PAGES(phdr->p_memsz), &addr);
                 if (EFI_ERROR(status))
                         return status;
 
                 memcpy((void *)phdr->p_paddr, kernel_elf_start + phdr->p_offset, phdr->p_filesz);
+                memset((void *)phdr->p_paddr + phdr->p_filesz, 0, phdr->p_memsz - phdr->p_filesz);
         }
         return EFI_SUCCESS;
 }

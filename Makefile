@@ -17,7 +17,7 @@ ESP = esp/EFI/BOOT
 # Shared Compiler Flags
 # -MMD -MP emit .d files so editing a header rebuilds what includes it.
 CFLAGS = -std=gnu23 -ffreestanding -fno-omit-frame-pointer -mno-red-zone \
-		 -isystem $(CURDIR)/include -MMD -MP
+		 -isystem $(CURDIR)/include -MMD -MP -g
 
 # --- EFI Phase (stub: clang, MS ABI, PE/COFF) ---
 EFI_CC = clang
@@ -50,7 +50,7 @@ KERNEL_CFLAGS := $(CFLAGS)
 KERNEL_CFLAGS += -isystem $(CURDIR)/$(ARCH_DIR)/include/
 KERNEL_CFLAGS += -DCFG_INIT_FBCON_EARLY
 KERNEL_CFLAGS += -mgeneral-regs-only -fno-stack-protector
-KERNEL_CFLAGS += -mcmodel=kernel
+KERNEL_CFLAGS += -mcmodel=kernel -fno-pic
 
 KERNEL_LDFLAGS = -T linker.ld -nostdlib -z max-page-size=0x1000
 
@@ -101,14 +101,21 @@ $(KERNEL_BUILD)/%.o: %.S
 	@mkdir -p $(dir $@)
 	$(KERNEL_CC) $(KERNEL_CFLAGS) -c $< -o $@
 
-run: all
+esp: all
 	mkdir -p $(ESP)
 	cp $(EFI_TARGET) $(ESP)/
 
+run: esp
 	qemu-system-x86_64	\
 		-bios /usr/share/edk2/ovmf/OVMF_CODE.fd	\
 		-drive format=raw,file=fat:rw:esp/	\
 		-vga std -net none
+
+debug: esp
+	qemu-system-x86_64	\
+		-bios /usr/share/edk2/ovmf/OVMF_CODE.fd	\
+		-drive format=raw,file=fat:rw:esp/	\
+		-vga std -net none -d int,cpu_reset -no-reboot -D qemu.log
 
 clean:
 	rm -rf $(BUILD) $(KERNEL_TARGET) $(EFI_TARGET)
