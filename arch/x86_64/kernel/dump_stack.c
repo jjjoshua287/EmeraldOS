@@ -12,7 +12,7 @@ void __dump_stack(struct pt_regs *regs)
 
 #else 
 
-extern long kernel_stack_bottom;
+extern unsigned char kernel_stack_bottom[];
 extern long KERNEL_STACK_SIZE;
 
 static inline bool is_valid_stack_addr(unsigned char *rbp)

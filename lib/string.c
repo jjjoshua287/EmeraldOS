@@ -19,8 +19,12 @@ size_t strnlen(const char *s, size_t maxlen)
 
 void *memset(void *dest, int val, size_t n)
 {
-        for (int i = 0; i < n; i++)
-                *((unsigned char*)dest + i) = val;
+        unsigned char *p = (unsigned char *)dest;
+        unsigned char c = (unsigned char)val;
+
+        while (n--)
+                *p++ = c;
+
         return dest;
 }
 
