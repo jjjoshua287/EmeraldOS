@@ -23,9 +23,10 @@ static void log_progress()
 int kernel_main()
 {
         printk("EmeraldOS Kernel v%s\n\n", KERNEL_VERSION);
-        log_progress();
-        printk("\n");
-        run_dev_tests();
+        //log_progress();
+        printk("Hello from ELF Kernel!\n");
+        printk("Hello from virtual address: %#p", &kernel_main);
+        //run_dev_tests();
 
         #if CFG_PANIC
         BUG();
@@ -36,10 +37,10 @@ int kernel_main()
 }
 
 // entry point into kernel, ExitBootServices should be called before entering this
-int start_kernel(void)
+int start_kernel(struct boot_info *boot)
 {
-        setup_arch();
-        init_fbcon(&boot.info);
+        setup_arch(boot);
+        init_fbcon(&boot->info);
         kernel_main();
         return 0;
 }

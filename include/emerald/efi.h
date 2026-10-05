@@ -19,6 +19,13 @@ typedef u64 efi_phys_addr_t;
 typedef u64 efi_virt_addr_t;
 
 typedef enum {
+        AllocateAnyPages,       /* Memory Anywhere */
+        AllocateMaxAddress,     /* Memory at or below Memory */
+        AllocateAddress,        /* Memory at exactly Memory */
+        MaxAllocateType
+} efi_allocate_type;
+
+typedef enum {
         EfiReservedMemoryType,
         EfiLoaderCode,
         EfiLoaderData,
@@ -34,6 +41,12 @@ typedef struct {
 } efi_memory_descriptor;
 
 #define EFI_MEMORY_DESCRIPTOR_VERSION 1
+
+#define EFI_PAGE_SHIFT  12
+#define EFI_PAGE_MASK   0xFFF
+#define EFI_PAGE_SIZE   (1UL << EFI_PAGE_SHIFT)
+
+#define EFI_SIZE_TO_PAGES(Size) (((Size) >> EFI_PAGE_SHIFT) + (((Size) & EFI_PAGE_MASK) ? 1 : 0))
 
 #define MAX_BIT 0x8000000000000000ULL
 

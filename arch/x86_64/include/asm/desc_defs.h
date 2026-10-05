@@ -145,6 +145,13 @@ struct desc_ptr {
 	u64 addr;
 } __packed;
 
-#endif /* !__ASSEMBLER__ */
+#else /* !__ASSEMBLER__ */
+#define GDT_ENTRY(flags, base, limit)                 \
+	((((base)  & 0xff000000) << (56 - 24)) |      \
+	 (((flags) & 0x0000f0ff) << 40)        |      \
+	 (((limit) & 0x000f0000) << (48 - 16)) |      \
+	 (((base)  & 0x00ffffff) << 16)        |      \
+	 (((limit) & 0x0000ffff)))
+#endif /* __ASSEMBLER__ */
 
 #endif // X86_64_DESC_DEFS_H

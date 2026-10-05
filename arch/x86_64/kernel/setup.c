@@ -1,11 +1,9 @@
 #include <emerald/runtime.h>
 
-void setup_gdt(void);
-void setup_idt(void);
 void acpi_boot_init(void *sys_desc_ptr);
 
-void setup_arch() {
-        setup_gdt();
-        setup_idt();
-        acpi_boot_init(boot.rsdp);
+/* this will do more in the future, for now it's currently a wrapper for acpi_boot_init */
+
+void setup_arch(struct boot_info *boot) {
+        acpi_boot_init(boot->rsdp);
 }

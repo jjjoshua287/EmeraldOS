@@ -19,10 +19,8 @@ exc_wrapper:
     push %r15
 
     /* enter kernel */
-    mov %rsp, %rcx  /* frame pointer arg */
-    sub $32, %rsp   /* Window x64 ABI requires 32 bytes shadow space for calls */
+    mov %rsp, %rdi  /* frame pointer arg */
     call handle_interrupt
-    add $32, %rsp   /* restore rsp */
 
     /* pop registers */
     pop %r15
