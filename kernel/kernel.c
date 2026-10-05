@@ -39,8 +39,8 @@ int kernel_main()
 // entry point into kernel, ExitBootServices should be called before entering this
 int start_kernel(struct boot_info *boot)
 {
-        setup_arch();
-        init_fbcon(&boot.info);
+        setup_arch(boot);
+        init_fbcon(&boot->info);
         kernel_main();
         return 0;
 }
