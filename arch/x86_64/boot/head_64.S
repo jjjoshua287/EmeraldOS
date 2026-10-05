@@ -16,6 +16,7 @@ early_pd:
 early_pd2:
     .zero 4096
 
+/* early Global Descriptor Table (GDT) */
 .balign 8
 early_gdt_start:
     .quad 0x0
@@ -37,12 +38,7 @@ __HEAD
 .set KERNEL_CS, __KERNEL_CS
 .set KERNEL_DS, __KERNEL_DS
 
-/* 
- * This will need to be swapped to an architecture-specific version
- * if I ever add support for a different architecture, but that would
- * only occur after the kernel is complete for the x86_64 architecture.
- */
-.extern start_kernel
+.extern x86_64_start_kernel
 .extern kernel_stack_top
 
 .global start_64
@@ -139,8 +135,8 @@ start_64:
     /* restore the boot_info pointer */
     movq %r12, %rdi
 
-/* entry point: start_kernel */
+/* entry point: x86_64_start_kernel */
 enter_kernel:
-    movabsq $start_kernel, %rax
+    movabsq $x86_64_start_kernel, %rax
     call *%rax
     ud2
