@@ -1,3 +1,4 @@
+#include <asm/pages.h>
 #include <asm/segment.h>
 #include <asm/desc_defs.h>
 #include <emerald/init.h>
@@ -5,25 +6,25 @@
 .section .head.data, "aw", @progbits
 
 /* early page tables */
-.balign 4096
+.balign PT_SIZE
 early_pml4:
-    .zero 4096
+    .zero PT_SIZE
 early_pdpt:
-    .zero 4096
-early_pd:
-    .zero 4096
+    .zero PT_SIZE
+early_pd_kernel:
+    .zero PT_SIZE
 
-early_pd2:
-    .zero 4096
+early_pd_mmio:
+    .zero PT_SIZE
 
 /* early Global Descriptor Table (GDT) */
 .balign 8
 early_gdt_start:
-    .quad 0x0
-    .quad GDT_ENTRY(DESC_CODE64, 0, 0xFFFFF)
-    .quad GDT_ENTRY(DESC_DATA64, 0, 0xFFFFF)
-    .quad GDT_ENTRY(DESC_CODE64 | DESC_USER, 0, 0xFFFFF)
-    .quad GDT_ENTRY(DESC_DATA64 | DESC_USER, 0, 0xFFFFF)
+    .quad 0x0                                               /* 0x00: null */
+    .quad GDT_ENTRY(DESC_CODE64, 0, 0xFFFFF)                /* 0x08: kernel code */
+    .quad GDT_ENTRY(DESC_DATA64, 0, 0xFFFFF)                /* 0x10: kernel data */
+    .quad GDT_ENTRY(DESC_CODE64 | DESC_USER, 0, 0xFFFFF)    /* 0x18: user code */
+    .quad GDT_ENTRY(DESC_DATA64 | DESC_USER, 0, 0xFFFFF)    /* 0x20: user data */
 early_gdt_end:
 
 .balign 4
@@ -34,9 +35,6 @@ early_gdt_desc:
 .section .text
 __HEAD
 .code64
-
-.set KERNEL_CS, __KERNEL_CS
-.set KERNEL_DS, __KERNEL_DS
 
 .extern x86_64_start_kernel
 .extern kernel_stack_top
@@ -54,15 +52,15 @@ start_64:
     lgdt early_gdt_desc(%rip)
 
     /* setup kernel data segments */
-    movw $KERNEL_DS, %ax
+    movw $__KERNEL_DS, %ax
     movw %ax, %ds
     movw %ax, %es
     movw %ax, %ss
     movw %ax, %fs
     movw %ax, %gs
 
-    /* reload data segment registers */
-    pushq $KERNEL_CS
+    /* reload code segment */
+    pushq $__KERNEL_CS
     leaq .setup_pgt(%rip), %rax
     pushq %rax
     lretq
@@ -70,56 +68,62 @@ start_64:
 .setup_pgt:
     /* setup initial page tables */
     leaq early_pdpt(%rip), %rax
-    orq $0x3, %rax                  /* Present (0x1) + Read/Write (0x2) */
+    orq $PTE_KERNEL, %rax
     leaq early_pml4(%rip), %rbx
-    movq %rax, (511 * 8)(%rbx)      /* Store into PML4[511] for higher-half */
+    movq %rax, (511 * PT_ENTRY_SIZE)(%rbx)     /* Store into PML4[511] for higher-half */
     
     movq %rax, 0(%rbx)  /* store into PML4[0] so CPU doesn't crash when we reload CR3 */
 
     /* link early_pdpt[510] and early_pdpt[0] to PD */
-    leaq early_pd(%rip), %rax
-    orq $0x3, %rax                  /* Present + Read/Write */
+    leaq early_pd_kernel(%rip), %rax
+    orq $PTE_KERNEL, %rax
     leaq early_pdpt(%rip), %rbx
-    movq %rax, (510 * 8)(%rbx)      /* early_pdpt[510] */
-    movq %rax, 0(%rbx)              /* early_pdpt[0] */
+    movq %rax, (510 * PT_ENTRY_SIZE)(%rbx)
+    movq %rax, 0(%rbx)
+
+    /* map kernel pages */
+    leaq early_pd_kernel(%rip), %rdi
+    movq $PTE_KERNEL_BIG, %rsi
+    xorq %rdx, %rdx
+    call map_pages
 
     /* map the framebuffer */
-    leaq early_pd2(%rip), %rax
-    orq $0x3, %rax
-    movq %rax, (2 * 8)(%rbx)        /* early_pdpt[2] */
+    leaq early_pd_mmio(%rip), %rax
+    orq $PTE_KERNEL, %rax
+    movq %rax, (2 * PT_ENTRY_SIZE)(%rbx)
 
-    leaq early_pd(%rip), %rdi
-    xorq %rcx, %rcx     /* Index counter */
-    xorq %rsi, %rsi     /* Physical address accumulator */
+    /* map mmio pages (currently framebuffer) */
+    leaq early_pd_mmio(%rip), %rdi
+    movq $PTE_MMIO, %rsi
+    movq BOOT_INFO_FB_BASE(%r12), %rdx
+    call map_pages
 
-.map_kernel_pages:
-    movq %rsi, %rbx
-    orq $0x83, %rbx             /* Present + Read/Write + Page Size */
-    movq %rbx, (%rdi, %rcx, 8)  /* early_pd[rcx] = rbx */
-    addq $0x200000, %rsi
-    incq %rcx
-    cmpq $512, %rcx
-    jne .map_kernel_pages
-
-    leaq early_pd2(%rip), %rdi
-    xorq %rcx, %rcx
-    movq $0x80000000, %rsi
-
-/* HACK: Do it dynamically once I implement a Page Table mapper */
-.map_mmio_pages:
-    movq %rsi, %rbx
-    orq $0x9B, %rbx     /* Present + Read/Write + PWT + PCD + Accessed */
-    mov %rbx, (%rdi, %rcx, 8)
-    addq $0x200000, %rsi
-    incq %rcx
-    cmpq $512, %rcx
-    jne .map_mmio_pages
-
-    /* set CR3 to point at early_pml4 */
     leaq early_pml4(%rip), %rax
     movq %rax, %cr3
+    jmp prepare_for_entry
 
-.prepare_for_entry:
+/* 
+ * map pages into a Page Directory
+ * %rdi - effective address of a Page Directory
+ * %rsi - flags
+ * %rdx - physical address accumulator
+ *
+ * Clobbers: %rcx, %rdx, %r8
+ */
+.type map_pages, @function
+map_pages:
+    xor %rcx, %rcx  /* index counter */
+.map_page:
+    mov %rdx, %r8
+    orq %rsi, %r8
+    movq %r8, (%rdi, %rcx, PT_ENTRY_SIZE)  /* pd[%rcx] = %rbx */
+    addq $KERNEL_PAGE_SIZE, %rdx
+    incq %rcx
+    cmpq $PT_ENTRIES, %rcx
+    jne .map_page
+    ret
+
+prepare_for_entry:
     /* Clear BSS */
     xorl %eax, %eax
     leaq __bss_start(%rip), %rdi

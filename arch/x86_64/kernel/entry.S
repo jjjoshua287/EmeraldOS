@@ -19,6 +19,7 @@ exc_wrapper:
     push %r15
 
     /* enter kernel */
+    mov %rsp, %rdi  /* frame pointer arg */
     call handle_interrupt
 
     /* pop registers */
