@@ -3,6 +3,10 @@
 #include <emerald/fbcon.h>
 #include <emerald/printk.h>
 
+#if CFG_PANIC
+#include <asm/bug.h>
+#endif
+
 #include <asm/setup.h>
 
 #include "tests.h"
@@ -25,7 +29,7 @@ int kernel_main()
         //run_dev_tests();
 
         #if CFG_PANIC
-        __asm__ volatile("ud2");
+        BUG();
         #endif
 
         while (1);
@@ -35,13 +39,8 @@ int kernel_main()
 // entry point into kernel, ExitBootServices should be called before entering this
 int start_kernel(struct boot_info *boot)
 {
-#ifdef CFG_INIT_FBCON_EARLY
-        init_fbcon(&boot->info);
-        acpi_boot_init(boot);
-#else
-        acpi_boot_init(boot);
-        init_fbcon(&boot->info);
-#endif
+        setup_arch();
+        init_fbcon(&boot.info);
         kernel_main();
         return 0;
 }

@@ -1,5 +1,6 @@
-#include <asm/desc.h>
+#include <asm/emergency_restart.h>
 #include <asm/ptrace.h>
+#include <asm/irq.h>
 
 #include <emerald/string.h>
 #include <emerald/printk.h>
@@ -12,10 +13,7 @@ static bool panicking = false;
 /* Restart kernel by forcing a triple fault */
 [[noreturn]] void emergency_restart(void)
 {
-        __asm__ volatile("cli");
-        invalidate_idt();
-        __asm__ volatile("int $64");
-
+        machine_emergency_restart();
         /* Prevent compiler from throwing -Winvalid-noreturn */
         unreachable();
 }
@@ -39,7 +37,7 @@ static bool panicking = false;
         dump_stack(regs);
 
         /* Halt CPU */
-        __asm__ volatile ("cli");
+        native_irq_disable();
         while (1)
-                __asm__ volatile ("hlt");
+                native_halt();
 }
