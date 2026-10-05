@@ -137,10 +137,8 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
                 fill_boot_info();
                 entry(&boot);
         } else {
-                SystemTable->ConOut->OutputString(SystemTable->ConOut, L"ERROR: Invalid ELF\n");
-                // Infinite Loop
-                while (1) 
-                        asm volatile("hlt");
+                /* we failed to load the kernel */
+                return (efi_status_t)EFI_LOAD_ERROR;
         }
 
         unreachable();
