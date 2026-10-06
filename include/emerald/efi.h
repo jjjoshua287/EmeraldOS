@@ -29,7 +29,19 @@ typedef enum {
         EfiReservedMemoryType,
         EfiLoaderCode,
         EfiLoaderData,
-        /* More Types will be added as they're used */
+        EfiBootServicesCode,
+        EfiBootServicesData,
+        EfiRuntimeServicesCode,
+        EfiRuntimeServicesData,
+        EfiConventionalMemory,
+        EfiUnusableMemory,
+        EfiACPIReclaimMemory,
+        EfiACPIMemoryNVS,
+        EfiMemoryMappedIO,
+        EfiMemoryMappedIOPortSpace,
+        EfiPalCode,
+        EfiPersistentMemory,
+        EfiUnacceptedMemoryType
 } efi_memory_type;
 
 typedef struct {
@@ -39,6 +51,8 @@ typedef struct {
         u64             NumberOfPages;
         u64             Attribute;
 } efi_memory_descriptor;
+
+#define EFI_MEMORY_WB 8ULL
 
 #define EFI_MEMORY_DESCRIPTOR_VERSION 1
 
