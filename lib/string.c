@@ -30,14 +30,28 @@ void *memset(void *dest, int val, size_t n)
 
 void *memcpy(void *dest, const void *src, size_t n)
 {
-        for (int i = 0; i < n; i++)
+        for (size_t i = 0; i < n; i++)
                 *((unsigned char*)dest + i) = *((unsigned char*)src + i);
+        return dest;
+}
+
+void *memmove(void *dest, const void *src, size_t n)
+{
+        if (dest < src) {
+                // copy forward
+                for (size_t i = 0; i < n; i++)
+                        *((unsigned char *)dest + i) = *((unsigned char *)src + i);
+        } else {
+                // copy backward
+                for (size_t i = n; i > 0; i--)
+                        *((unsigned char *)dest + (i - 1)) = *((unsigned char *)src + (i - 1));
+        }
         return dest;
 }
 
 int memcmp(const void *s1, const void *s2, size_t n)
 {
-        for (int i = 0; i < n; i++) {
+        for (size_t i = 0; i < n; i++) {
                 unsigned char b1 = *(unsigned char *)(s1 + i);
                 unsigned char b2 = *(unsigned char *)(s2 + i);
                 
