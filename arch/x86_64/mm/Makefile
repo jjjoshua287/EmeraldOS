@@ -1,0 +1,1 @@
+SRCS += $(ARCH_DIR)/mm/fault.c

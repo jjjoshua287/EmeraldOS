@@ -1,6 +1,9 @@
 /* Interrupt Service Routines called by assembly stubs */
 
 #include <asm/ptrace.h>
+#include <asm/exceptions.h>
+#include <emerald/fbcon.h>
+#include <emerald/printk.h>
 #include <emerald/panic.h>
 
 static void handle_irq()
@@ -19,8 +22,12 @@ void handle_interrupt(struct pt_regs *regs)
                 handle_irq();
                 return;
         }
-        if (user_mode(regs))
+        
+        if (user_mode(regs)) {
                 handle_user_exception();
-        else
+        }
+        else {
+                fbcon_clear();
                 panic("Exception occured in Kernel!", regs);
+        }
 }

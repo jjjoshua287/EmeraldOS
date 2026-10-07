@@ -26,7 +26,6 @@ static bool panicking = false;
                 emergency_restart();
         panicking = true;
 
-        fbcon_clear();
         printk("KERNEL PANIC!\n");
         printk("%s\n\n", msg);
         
