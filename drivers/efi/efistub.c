@@ -94,17 +94,13 @@ static efi_status_t handle_exit(efi_handle_t ImageHandle, efi_system_table_t *Sy
         return status;
 }
 
-struct boot_info boot;
-
-static inline void fill_boot_info()
-{
-        boot.info = scr_info;
-        boot.mem = hw_mem;
-}
+struct boot_info boot = {0};
 
 /* Kernel ELF expects System V ABI, not MS ABI like UEFI does. */
 typedef void (*kernel_entry_t)(struct boot_info *boot) __attribute__((sysv_abi));
 void *load_kernel(struct efi_boot_services *gBS);
+
+void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out);
 
 efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
@@ -134,7 +130,9 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 
                 /* Give the Kernel the struct boot_info it expects and call its entry point. */
                 boot.rsdp = rsdp;
-                fill_boot_info();
+                boot.info = scr_info;
+                efi_mmap_to_e820(&hw_mem, &boot.mem);
+
                 entry(&boot);
         } else {
                 /* we failed to load the kernel */

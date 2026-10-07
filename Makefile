@@ -17,7 +17,7 @@ ESP = esp/EFI/BOOT
 # Shared Compiler Flags
 # -MMD -MP emit .d files so editing a header rebuilds what includes it.
 CFLAGS = -std=gnu23 -ffreestanding -fno-omit-frame-pointer -mno-red-zone \
-		 -isystem $(CURDIR)/include -MMD -MP -g
+		 -isystem $(CURDIR)/include -isystem $(CURDIR)/$(ARCH_DIR)/include -MMD -MP -g
 
 # --- EFI Phase (stub: clang, MS ABI, PE/COFF) ---
 EFI_CC = clang
@@ -34,7 +34,7 @@ EFI_LDFLAGS = /subsystem:efi_application \
 EFI_TARGET = BOOTX64.EFI
 EFI_BUILD = $(BUILD)/efi
 
-EFI_SRCS := lib/string.c
+EFI_SRCS := lib/string.c $(ARCH_DIR)/lib/e820_table.c
 include drivers/efi/Makefile
 
 EFI_OBJS := $(addprefix $(EFI_BUILD)/,$(patsubst %.S,%.o,$(EFI_SRCS:.c=.o)))
@@ -47,7 +47,6 @@ KERNEL_TARGET = emeraldos.elf
 KERNEL_BUILD = $(BUILD)/kernel
 
 KERNEL_CFLAGS := $(CFLAGS)
-KERNEL_CFLAGS += -isystem $(CURDIR)/$(ARCH_DIR)/include/
 KERNEL_CFLAGS += -DCFG_INIT_FBCON_EARLY
 KERNEL_CFLAGS += -mgeneral-regs-only -fno-stack-protector
 KERNEL_CFLAGS += -mcmodel=kernel -fno-pic

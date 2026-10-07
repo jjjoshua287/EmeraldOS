@@ -1,5 +1,9 @@
+#include <asm/e820/types.h>
+
+#include <emerald/efi.h>
 #include <emerald/elf.h>
 #include <emerald/string.h>
+#include <emerald/runtime.h>
 #include <emerald/compiler.h>
 
 #include "efistub.h"
@@ -49,4 +53,51 @@ void *load_kernel(struct efi_boot_services *gBS)
                 return (void *)hdr->e_entry;
         }
         return NULL;
+}
+
+void insert_e820_entry(struct e820_table *table, u64 addr, u64 size, enum e820_type type);
+
+/* Convert a memory map obtained from UEFI's GetMemoryMap to an E820 Memory Map */
+void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out)
+{
+	u64 uefi_entries = mmap->size / mmap->descriptorSize;
+	out->nr_entries += (uefi_entries < E820_MAX_ENTRIES) ? uefi_entries : E820_MAX_ENTRIES;
+
+	efi_memory_descriptor *map = mmap->memoryMap;
+	for (u64 i = 0; i < uefi_entries && i < E820_MAX_ENTRIES; i++) {
+		struct e820_entry *entry = &out->entries[i];
+		efi_memory_descriptor *desc = map + i * mmap->descriptorSize;
+		enum e820_type type;
+		u64 size = desc->NumberOfPages * EFI_PAGE_SIZE;
+		
+		switch (desc->Type) {
+		case EfiLoaderCode:
+		case EfiLoaderData:
+		case EfiBootServicesCode:
+		case EfiBootServicesData:
+		case EfiConventionalMemory:
+			if (desc->Attribute & EFI_MEMORY_WB)
+				type = E820_TYPE_RAM;
+			else
+				type = E820_TYPE_RESERVED;
+			break;
+		case EfiACPIReclaimMemory:
+			type = E820_TYPE_ACPI;
+			break;
+		case EfiACPIMemoryNVS:
+			type = E820_TYPE_NVS;
+			break;
+		case EfiPersistentMemory:
+			type = E820_TYPE_PMEM;
+			break;
+		case EfiUnusableMemory:
+			type = E820_TYPE_UNUSABLE;
+			break;
+		default:
+			type = E820_TYPE_RESERVED;
+			break;
+		}
+
+		insert_e820_entry(out, desc->PhysicalStart, size, type);
+	}
 }

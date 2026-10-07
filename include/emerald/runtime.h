@@ -1,6 +1,8 @@
 #ifndef EMERALD_RUNTIME_H
 #define EMERALD_RUNTIME_H
 
+#include <asm/e820/types.h>
+
 #include <emerald/types.h>
 #include <emerald/efi.h>
 
@@ -34,7 +36,7 @@ struct hw_memory_map {
 struct boot_info {
         void *rsdp;
         struct screen_info info;
-        struct hw_memory_map mem;
+        struct e820_table mem;
 };
 
 extern struct boot_info boot;

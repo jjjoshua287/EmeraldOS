@@ -7,6 +7,10 @@
 #include <asm/bug.h>
 #endif
 
+#if CFG_SHOW_E820_MMAP
+#include <asm/e820/api.h>
+#endif
+
 #include <asm/setup.h>
 
 #include "tests.h"
@@ -41,6 +45,11 @@ int start_kernel(struct boot_info *boot)
 {
         setup_arch(boot);
         init_fbcon(&boot->info);
+
+        #if CFG_SHOW_E820_MMAP
+        print_e820_table(&boot->mem);
+        #endif
+
         kernel_main();
         return 0;
 }
