@@ -8,7 +8,7 @@ const char *e820_type_name(enum e820_type type)
 {
 	switch (type) {
 	case E820_TYPE_RAM:
-		return "Usable";
+		return "System RAM";
 	case E820_TYPE_RESERVED:
 		return "Reserved";
 	case E820_TYPE_ACPI:
