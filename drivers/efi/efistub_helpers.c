@@ -60,15 +60,17 @@ void insert_e820_entry(struct e820_table *table, u64 addr, u64 size, enum e820_t
 /* Convert a memory map obtained from UEFI's GetMemoryMap to an E820 Memory Map */
 void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out)
 {
+	memset(out, 0, sizeof(struct e820_table));
+	
 	u64 uefi_entries = mmap->size / mmap->descriptorSize;
-	out->nr_entries += (uefi_entries < E820_MAX_ENTRIES) ? uefi_entries : E820_MAX_ENTRIES;
+	u64 num_entries = (uefi_entries < E820_MAX_ENTRIES) ? uefi_entries : E820_MAX_ENTRIES;
 
-	efi_memory_descriptor *map = mmap->memoryMap;
-	for (u64 i = 0; i < uefi_entries && i < E820_MAX_ENTRIES; i++) {
+	u8 *map = (u8 *)mmap->memoryMap;
+	for (u64 i = 0; i < num_entries; i++) {
 		struct e820_entry *entry = &out->entries[i];
-		efi_memory_descriptor *desc = map + i * mmap->descriptorSize;
+		efi_memory_descriptor *desc = (efi_memory_descriptor *)(map + i * mmap->descriptorSize);
 		enum e820_type type;
-		u64 size = desc->NumberOfPages * EFI_PAGE_SIZE;
+		u64 size = (u64)desc->NumberOfPages * EFI_PAGE_SIZE;
 		
 		switch (desc->Type) {
 		case EfiLoaderCode:

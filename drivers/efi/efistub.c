@@ -94,7 +94,7 @@ static efi_status_t handle_exit(efi_handle_t ImageHandle, efi_system_table_t *Sy
         return status;
 }
 
-struct boot_info boot = {0};
+struct boot_info boot;
 
 /* Kernel ELF expects System V ABI, not MS ABI like UEFI does. */
 typedef void (*kernel_entry_t)(struct boot_info *boot) __attribute__((sysv_abi));

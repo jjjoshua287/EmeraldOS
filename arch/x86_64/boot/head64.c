@@ -1,4 +1,5 @@
 #include <emerald/runtime.h>
+#include <asm/e820/api.h>
 #include <asm/setup.h>
 
 /* forward reference of kernel's main entry point */
@@ -11,5 +12,8 @@ void x86_64_start_kernel(struct boot_info *boot)
 
         setup_gdt();
         setup_idt();
+
+        sanitize_e820_table(&boot->mem);
+
         start_kernel(boot);
 }

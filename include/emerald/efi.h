@@ -52,9 +52,12 @@ typedef struct {
         u64             Attribute;
 } efi_memory_descriptor;
 
-#define EFI_MEMORY_WB 8ULL
+static_assert(offsetof(efi_memory_descriptor, PhysicalStart) == 8, 
+        "PhysicalStart must be aligned on a 4 KiB boundary");
 
 #define EFI_MEMORY_DESCRIPTOR_VERSION 1
+
+#define EFI_MEMORY_WB 8ULL
 
 #define EFI_PAGE_SHIFT  12
 #define EFI_PAGE_MASK   0xFFF

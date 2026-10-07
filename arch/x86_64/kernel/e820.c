@@ -2,6 +2,7 @@
 #include <emerald/runtime.h>
 #include <emerald/string.h>
 #include <emerald/printk.h>
+#include <emerald/compiler.h>
 
 const char *e820_type_name(enum e820_type type)
 {
@@ -25,31 +26,51 @@ const char *e820_type_name(enum e820_type type)
 
 void print_e820_table(const struct e820_table *table)
 {
+	u64 end_prev = 0;
+
 	for (u32 i = 0; i < table->nr_entries; i++) {
-		const struct e820_entry *ent = &table->entries[i];
-	    	printk("e820: [mem %016llx-%016llx] %s\n", 
-			ent->addr,  ent->addr + ent->size - 1, e820_type_name(ent->type));
+		const struct e820_entry *entry = &table->entries[i];
+		u64 start = entry->addr;
+		u64 end = entry->addr + entry->size;
+
+		/* Out of order E820 maps shouldn't happen */
+		if (unlikely(start < end_prev))
+			printk("Out of order E820 entry!\n");
+
+		if (entry->addr > end_prev)
+			printk("e820: [gap 0x%016llx-0x%016llx]\n", end_prev, start - 1);
+
+	    	printk("e820: [mem 0x%016llx-0x%016llx] %s\n", start, end - 1, e820_type_name(entry->type));
+		
+		end_prev = entry->addr + entry->size;
 	}
 }
 
 /* Merge adjacent regions */
-void sanitize_e820_table(struct e820_table *table) {
-	struct e820_entry *last = &table->entries[0];
-	for (int i = 1; i < table->nr_entries; i++) {
-		struct e820_entry *curr = &table->entries[i];
-		if (curr->type != last->type) {
-			last = curr;
-			continue;
+void sanitize_e820_table(struct e820_table *table) 
+{
+	u32 w = 0;	/* index of the last kept entry */
+	/* If we only have 1 entry, don't sort it. */
+	if (table->nr_entries < 2)
+		return;
+
+	for (u32 r = 1; r < table->nr_entries; r++) {
+		struct e820_entry *last = &table->entries[w];
+		struct e820_entry *curr = &table->entries[r];
+		u64 last_end = last->addr + last->size;
+
+		/* Check if last and curr should be merged */
+		if (curr->type == last->type && curr->addr <= last_end) {
+			/* last and curr are adjacent or overlapping */
+			u64 curr_end = curr->addr + curr->size;
+			if (curr_end > last_end)
+				last->size = curr_end - last->addr;
+		} else {
+			table->entries[++w] = *curr;
 		}
-
-		last->size += curr->size;
-		last = curr;
-
-		/* we can't shift entries left if we're at the last entry */
-		if ((i + 1) == table->nr_entries)
-			memset(curr, 0, sizeof(struct e820_entry));
-		else 
-			memmove(curr, curr + 1, (table->nr_entries - i) * sizeof(struct e820_entry));
-		table->nr_entries--;
 	}
+
+	size_t size = (table->nr_entries - (w + 1)) * sizeof(struct e820_entry);
+	memset(&table->entries[w + 1], 0, size);
+	table->nr_entries = w + 1;
 }

@@ -14,21 +14,17 @@
   */
 void insert_e820_entry(struct e820_table *table, u64 addr, u64 size, enum e820_type type)
 {
-	if (size == 0)
+	if (size == 0 || table->nr_entries >= E820_MAX_ENTRIES)
 		return;
 
-	int idx = table->nr_entries;
-	struct e820_entry *ent = &table->entries[idx];
-	while (addr < ent->addr && --idx >= 0)
-		ent = &table->entries[idx];
-	
-	/* shift existing entries 1 to the right */
-	if (ent->addr) {
-		memmove(ent + 1, ent, (table->nr_entries - idx) * sizeof(struct e820_entry));
+	u32 idx = table->nr_entries;
+	while (idx > 0 && table->entries[idx - 1].addr > addr) {
+		table->entries[idx] = table->entries[idx - 1];
+		idx--;
 	}
 
-	ent->addr = addr;
-	ent->size = size;
-	ent->type = type;
+	table->entries[idx].addr = addr;
+	table->entries[idx].size = size;
+	table->entries[idx].type = type;
 	table->nr_entries++;
 };
