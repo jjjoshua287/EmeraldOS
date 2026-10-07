@@ -87,15 +87,22 @@ start_64:
     xorq %rdx, %rdx
     call map_pages
 
+    /* PDPT index = (fb >> 30) & 0x1FF */
+    movq BOOT_INFO_FB_BASE(%r12), %rdx
+    movq %rdx, %rax
+    shrq $30, %rax
+    andl $0x1FF, %eax
+    andq $-0x40000000, %rdx     /* round base down to 1 GiB for map_pages */
+
+
     /* map the framebuffer */
-    leaq early_pd_mmio(%rip), %rax
-    orq $PTE_KERNEL, %rax
-    movq %rax, (2 * PT_ENTRY_SIZE)(%rbx)
+    leaq early_pd_mmio(%rip), %rcx
+    orq $PTE_KERNEL, %rcx
+    movq %rcx, (%rbx, %rax, PT_ENTRY_SIZE)
 
     /* map mmio pages (currently framebuffer) */
     leaq early_pd_mmio(%rip), %rdi
     movq $PTE_MMIO, %rsi
-    movq BOOT_INFO_FB_BASE(%r12), %rdx
     call map_pages
 
     leaq early_pml4(%rip), %rax
@@ -116,7 +123,7 @@ map_pages:
 .map_page:
     mov %rdx, %r8
     orq %rsi, %r8
-    movq %r8, (%rdi, %rcx, PT_ENTRY_SIZE)  /* pd[%rcx] = %rbx */
+    movq %r8, (%rdi, %rcx, PT_ENTRY_SIZE)  /* pd[%rcx] = %r8 */
     addq $KERNEL_PAGE_SIZE, %rdx
     incq %rcx
     cmpq $PT_ENTRIES, %rcx

@@ -48,7 +48,7 @@ static efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTab
                 // TODO: Handle the error
                 SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Graphics Output Protocol: FAILURE");
         } else {
-                SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Graphics Output Protocol: OK\n");
+                SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Graphics Output Protocol: OK\n\r");
                 
                 scr_info.lfb_base   = gop->Mode->FrameBufferBase;
                 scr_info.lfb_ppsl   = gop->Mode->Info->PixelsPerScanLine;
@@ -98,9 +98,27 @@ struct boot_info boot;
 
 /* Kernel ELF expects System V ABI, not MS ABI like UEFI does. */
 typedef void (*kernel_entry_t)(struct boot_info *boot) __attribute__((sysv_abi));
-void *load_kernel(struct efi_boot_services *gBS);
 
+/* Function prototypes from efistub_helpers.c */
+void *load_kernel(struct efi_boot_services *gBS);
 void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out);
+int efi_utoa(unsigned long long num, efi_char16_t *out_buf, int base);
+
+static void efi_puthex(efi_system_table_t *SystemTable, unsigned long long v)
+{
+        efi_char16_t tmp[65];
+        SystemTable->ConOut->OutputString(SystemTable->ConOut, (efi_char16_t *)u"0x");
+        efi_utoa(v, tmp, 16);
+        SystemTable->ConOut->OutputString(SystemTable->ConOut, tmp);
+}
+
+static void print_fb_info(efi_system_table_t *SystemTable) {
+        SystemTable->ConOut->OutputString(SystemTable->ConOut, L"fb_base=");
+        efi_puthex(SystemTable, scr_info.lfb_base);
+        SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\n\rfb_size=");
+        efi_puthex(SystemTable, scr_info.lfb_size);
+        SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\n\r");
+}
 
 efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
@@ -120,6 +138,8 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
         if (rsdp == NULL)
                 rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)ACPI_10_TABLE_GUID);
 
+        print_fb_info(SystemTable);
+
         kernel_entry_t entry = (kernel_entry_t)load_kernel(SystemTable->BootServices);
 
         if (likely(entry != NULL)) {
@@ -132,7 +152,6 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
                 boot.rsdp = rsdp;
                 boot.info = scr_info;
                 efi_mmap_to_e820(&hw_mem, &boot.mem);
-
                 entry(&boot);
         } else {
                 /* we failed to load the kernel */

@@ -8,6 +8,31 @@
 
 #include "efistub.h"
 
+/* Reverse a string in-place. */
+static void efi_reverse_string(efi_char16_t *start, efi_char16_t *end)
+{
+        while (start < end) {
+                efi_char16_t tmp = *start;
+                *start++ = *end;
+                *end-- = tmp;
+        }
+}
+
+// convert an unsigned integer into a string, returning strlen()
+int efi_utoa(unsigned long long num, efi_char16_t *out_buf, int base)
+{
+        int i = 0;
+        const char *digits = "0123456789abcdef";
+        do {
+                out_buf[i++] = (efi_char16_t)digits[num % base];
+        } while ((num /= base) != 0);
+
+        efi_reverse_string(out_buf, out_buf + i - 1);
+        out_buf[i] = '\0';
+
+        return i;
+}
+
 extern const unsigned char kernel_elf_start[];
 
 /* NOTE: This assumes the kernel is compiled as a 64-bit ELF */
