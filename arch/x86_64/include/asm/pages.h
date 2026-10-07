@@ -23,23 +23,25 @@
 #define PTE_KERNEL_BIG (PTE_KERNEL | PTE_PS)
 #define PTE_MMIO (PTE_P | PTE_RW | PTE_PWT | PTE_PCD | PTE_A | PTE_PS)
 
-/* hard coded, but determined from KERNEL_VMA - KERNEL_LMA */
-#define PAGE_OFFSET 0xffffffff7fe00000
+#define KERNEL_LMA 	0x0000000000100000
+#define KERNEL_VMA 	0xffffffff80000000
+#define PAGE_OFFSET 	0xffff888000000000
 
 #ifndef __ASSEMBLER__
 #include <emerald/types.h>
 
-#define __va(x) ((void *)(unsigned long)(x) + PAGE_OFFSET)
-#define __pa(x) ((unsigned long)(x) - PAGE_OFFSET)
+#define __va(x) 	((void *)(unsigned long)(x) + PAGE_OFFSET)
+#define __pa(x) 	((unsigned long)(x) - PAGE_OFFSET)
+#define __pa_symbol(x)	((unsigned long)(x) - KERNEL_VMA + KERNEL_LMA)
 
 /* convert a physical address into a virtual address. The address must be directly mapped */
-static inline void *phys_to_virt(phys_addr_t paddr)
+static inline void *phys_to_virt(phys_addr_t addr)
 {
-	return __va(paddr);
+	return __va(addr);
 }
 
-static inline phys_addr_t virt_to_phys(u64 vaddr) {
-	return __pa(vaddr);
+static inline phys_addr_t virt_to_phys(u64 addr) {
+	return (addr >= KERNEL_VMA) ? __pa_symbol(addr) : __pa(addr);
 }
 
 #endif /* !__ASSEMBLER__ */

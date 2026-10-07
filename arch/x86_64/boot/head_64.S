@@ -96,9 +96,9 @@ start_64:
 
 
     /* map the framebuffer */
-    leaq early_pd_mmio(%rip), %rcx
-    orq $PTE_KERNEL, %rcx
-    movq %rcx, (%rbx, %rax, PT_ENTRY_SIZE)
+    leaq early_pd_mmio(%rip), %r9
+    orq $PTE_KERNEL, %r9
+    movq %r9, (%rbx, %rax, PT_ENTRY_SIZE)
 
     /* map mmio pages (currently framebuffer) */
     leaq early_pd_mmio(%rip), %rdi

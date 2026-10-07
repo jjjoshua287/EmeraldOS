@@ -19,6 +19,7 @@ static bool __acpi_checksum(void *ptr, size_t len)
 
 static bool validate_rsdp(struct acpi_table_rsdp *rsdp)
 {
+	/* the memcmp function is what caused the Page Fault */
 	if (rsdp == NULL || memcmp(rsdp->signature, ACPI_SIG_RSDP, 8))
         	return false;
 

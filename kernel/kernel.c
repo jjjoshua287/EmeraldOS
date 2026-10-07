@@ -1,6 +1,5 @@
 #include <emerald/runtime.h>
 #include <emerald/kernel.h>
-#include <emerald/fbcon.h>
 #include <emerald/printk.h>
 
 #if CFG_PANIC
@@ -41,11 +40,13 @@ int kernel_main()
 int start_kernel(struct boot_info *boot)
 {
         setup_arch(boot);
-        init_fbcon(&boot->info);
-        
+
         print_e820_table(&boot->mem);
+        
         printk("\nFramebuffer region: [0x%016llx-0x%016llx]\n", 
                 boot->info.lfb_base, boot->info.lfb_base + boot->info.lfb_size);
+        printk("RSDP addr: %#p\n", boot->rsdp);
+        
         kernel_main();
         return 0;
 }
