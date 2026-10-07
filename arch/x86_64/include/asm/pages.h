@@ -23,4 +23,25 @@
 #define PTE_KERNEL_BIG (PTE_KERNEL | PTE_PS)
 #define PTE_MMIO (PTE_P | PTE_RW | PTE_PWT | PTE_PCD | PTE_A | PTE_PS)
 
+/* hard coded, but determined from KERNEL_VMA - KERNEL_LMA */
+#define PAGE_OFFSET 0xffffffff7fe00000
+
+#ifndef __ASSEMBLER__
+#include <emerald/types.h>
+
+#define __va(x) ((void *)(unsigned long)(x) + PAGE_OFFSET)
+#define __pa(x) ((unsigned long)(x) - PAGE_OFFSET)
+
+/* convert a physical address into a virtual address. The address must be directly mapped */
+static inline void *phys_to_virt(phys_addr_t paddr)
+{
+	return __va(paddr);
+}
+
+static inline phys_addr_t virt_to_phys(u64 vaddr) {
+	return __pa(vaddr);
+}
+
+#endif /* !__ASSEMBLER__ */
+
 #endif // X86_64_ASM_PAGES_H

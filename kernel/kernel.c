@@ -44,8 +44,8 @@ int start_kernel(struct boot_info *boot)
         init_fbcon(&boot->info);
         
         print_e820_table(&boot->mem);
-        printk("\n");
-
+        printk("\nFramebuffer region: [0x%016llx-0x%016llx]\n", 
+                boot->info.lfb_base, boot->info.lfb_base + boot->info.lfb_size);
         kernel_main();
         return 0;
 }
