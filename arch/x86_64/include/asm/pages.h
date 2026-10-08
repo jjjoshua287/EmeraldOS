@@ -40,8 +40,8 @@ static inline void *phys_to_virt(phys_addr_t addr)
 	return __va(addr);
 }
 
-static inline phys_addr_t virt_to_phys(u64 addr) {
-	return (addr >= KERNEL_VMA) ? __pa_symbol(addr) : __pa(addr);
+static inline phys_addr_t virt_to_phys(const void *addr) {
+	return ((unsigned long)addr >= KERNEL_VMA) ? __pa_symbol(addr) : __pa(addr);
 }
 
 #endif /* !__ASSEMBLER__ */
