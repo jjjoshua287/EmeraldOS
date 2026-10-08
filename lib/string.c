@@ -51,13 +51,12 @@ void *memmove(void *dest, const void *src, size_t n)
 
 int memcmp(const void *s1, const void *s2, size_t n)
 {
+        const unsigned char *p1 = (unsigned char *)s1; 
+        const unsigned char *p2 = (unsigned char *)s2;
         for (size_t i = 0; i < n; i++) {
-                unsigned char b1 = *(unsigned char *)(s1 + i);
-                unsigned char b2 = *(unsigned char *)(s2 + i);
-                
-                if (b1 < b2)
+                if (p1[i] < p2[i])
                         return -1;
-                else if (b1 > b2)
+                else if (p1[i] > p2[i])
                         return 1;
         }
         return 0;

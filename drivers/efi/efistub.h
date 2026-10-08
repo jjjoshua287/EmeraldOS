@@ -51,7 +51,10 @@ struct efi_boot_services {
         void *RegisterProtocolNotify;
         void *LocateHandle;
         void *LocateDevicePath;
-        void *InstallConfigurationTable;
+        efi_status_t (*InstallConfigurationTable)(
+                efi_guid_t      *Guid,
+                void            *Table
+        );
 
         // Image Services
         void *LoadImage;

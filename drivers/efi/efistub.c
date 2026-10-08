@@ -5,9 +5,9 @@
 
 #include "efistub.h"
 
-static inline bool guidcmp(efi_guid_t a, efi_guid_t b)
+static inline int guidcmp(efi_guid_t *a, efi_guid_t *b)
 {
-        return memcmp(&a, &b, sizeof(efi_guid_t));
+        return memcmp(a, b, sizeof(*a));
 }
 
 /**
@@ -18,12 +18,12 @@ static inline bool guidcmp(efi_guid_t a, efi_guid_t b)
  * 
  * Return: A pointer to the corresponding configuration table, or NULL if not found
  */
-void *get_efi_cfg_table(efi_system_table_t *SystemTable, efi_guid_t guid)
+void *get_efi_cfg_table(efi_system_table_t *SystemTable, efi_guid_t *guid)
 {
-        for (int i = 0; i < SystemTable->NumberOfTableEntries; i++) {
-                if (guidcmp(SystemTable->ConfigurationTable->VendorGuid, guid) == 0)
-                        return SystemTable->ConfigurationTable->VendorTable;
-                SystemTable->ConfigurationTable->VendorTable++;
+        efi_cfg_table_t *tbl = SystemTable->ConfigurationTable;
+        for (u64 i = 0; i < SystemTable->NumberOfTableEntries; i++) {
+                if (guidcmp(&tbl[i].VendorGuid, guid) == 0)
+                        return tbl[i].VendorTable;
         }
         return NULL;
 }
@@ -46,9 +46,9 @@ static efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTab
         efi_status_t status = locate_gop(SystemTable->BootServices);
         if (EFI_ERROR(status)) {
                 // TODO: Handle the error
-                SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Graphics Output Protocol: FAILURE");
+                SystemTable->ConOut->OutputString(SystemTable->ConOut, u"efi: failed to locate Graphics Output Protocol\n\r");
         } else {
-                SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Graphics Output Protocol: OK\n\r");
+                SystemTable->ConOut->OutputString(SystemTable->ConOut, u"efi: successfully located Graphics Output Protocol\n\r");
                 
                 scr_info.lfb_base   = gop->Mode->FrameBufferBase;
                 scr_info.lfb_ppsl   = gop->Mode->Info->PixelsPerScanLine;
@@ -113,11 +113,11 @@ static void efi_puthex(efi_system_table_t *SystemTable, unsigned long long v)
 }
 
 static void print_fb_info(efi_system_table_t *SystemTable) {
-        SystemTable->ConOut->OutputString(SystemTable->ConOut, L"fb_base=");
+        SystemTable->ConOut->OutputString(SystemTable->ConOut, u"fb_base=");
         efi_puthex(SystemTable, scr_info.lfb_base);
-        SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\n\rfb_size=");
+        SystemTable->ConOut->OutputString(SystemTable->ConOut, u"\n\rfb_size=");
         efi_puthex(SystemTable, scr_info.lfb_size);
-        SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\n\r");
+        SystemTable->ConOut->OutputString(SystemTable->ConOut, u"\n\r");
 }
 
 efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
@@ -130,20 +130,19 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
         if (EFI_ERROR(status))
                 return status;
 
-        /* We check if rsdp is NULL in case the ACPI 2.0 Table isn't supported.
-         * This doesn't guarentee the RSDP is valid however. The kernel
-         * still needs to ensure it is valid.
-         */
-        void *rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)EFI_ACPI_20_TABLE_GUID);
-        if (rsdp == NULL)
-                rsdp = get_efi_cfg_table(SystemTable, (efi_guid_t)ACPI_10_TABLE_GUID);
+        efi_guid_t acpi_guid = EFI_ACPI_TABLE_GUID;
+        void *rsdp = get_efi_cfg_table(SystemTable, &acpi_guid);
+        if (rsdp == NULL) {
+                efi_guid_t acpi_legacy_guid = ACPI_TABLE_GUID;
+                rsdp = get_efi_cfg_table(SystemTable, &acpi_legacy_guid);
+        }
 
         print_fb_info(SystemTable);
 
         kernel_entry_t entry = (kernel_entry_t)load_kernel(SystemTable->BootServices);
 
         if (likely(entry != NULL)) {
-                SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Loaded Kernel");
+                SystemTable->ConOut->OutputString(SystemTable->ConOut, u"Loaded Kernel\r\n");
                 status = handle_exit(ImageHandle, SystemTable);
                 if (EFI_ERROR(status))
                         return status;
@@ -154,7 +153,7 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
                 efi_mmap_to_e820(&hw_mem, &boot.mem);
                 entry(&boot);
         } else {
-                /* we failed to load the kernel */
+                SystemTable->ConOut->OutputString(SystemTable->ConOut, u"Failed to load Kernel!\r\n");
                 return (efi_status_t)EFI_LOAD_ERROR;
         }
 

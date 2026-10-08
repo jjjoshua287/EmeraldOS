@@ -7,11 +7,9 @@
 #include <asm/e820/types.h>
 #include <asm/e820/api.h>
 
-void fixup_boot_info(struct boot_info *boot, struct boot_info *out_virt)
+static inline void fixup_boot_info(struct boot_info *boot)
 {
-        out_virt->rsdp = boot->rsdp;
-        out_virt->info.lfb_base = (u64)phys_to_virt(boot->info.lfb_base);
-        out_virt->mem = boot->mem;
+        boot->info.lfb_base = (u64)phys_to_virt(boot->info.lfb_base);
 }
 
 /* forward reference of kernel's main entry point */
@@ -32,10 +30,8 @@ void x86_64_start_kernel(struct boot_info *boot)
          */
         init_fbcon(&boot->info);
 
-        struct boot_info boot_virt;
-        fixup_boot_info(boot, &boot_virt);
-
-        sanitize_e820_table(&boot_virt.mem);
-
-        start_kernel(&boot_virt);
+        fixup_boot_info(boot);
+        sanitize_e820_table(&boot->mem);
+        
+        start_kernel(boot);
 }
