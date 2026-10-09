@@ -3,6 +3,9 @@
 
 #include <emerald/types.h>
 
+/* the initial number of memblock regions, can be increased dynamically */
+#define MEMBLOCK_INIT_REGIONS 128
+
 /** 
   * enum memblock_flags - various flags for memblock regions
   * @MEMBLOCK_NONE: no special request
@@ -60,14 +63,31 @@ struct memblock {
 };
 
 extern struct memblock memblock;
+extern bool memblock_debug;
 
-/* constants for memblock API */
+#define memblock_dbg(fmt, ...) 				\
+	do {						\
+		if (memblock_debug)			\
+			printk(fmt, ##__VA_ARGS__);	\
+	} while (0)
 
 /* flags for memblock alloc limits */
 #define MEMBLOCK_ALLOC_ANYWHERE   (~(phys_addr_t)0)
 #define MEMBLOCK_ALLOC_ACCESSIBLE 0	/* use memblock.curr_limit */
 
-/* the initial number of memblock regions, can be increased dynamically */
-#define MEMBLOCK_INIT_SECTIONS 128
+int memblock_add(phys_addr_t base, phys_addr_t size);
+int memblock_remove(phys_addr_t base, phys_addr_t size);
+int memblock_reserve(phys_addr_t base, phys_addr_t size);
+
+/**
+ * for_each_memblock_type - iterator for memblock_type->regions[]
+ * @i: loop variable, set to 0
+ * @memblock_type: pointer to memblock_type to iterate over
+ * @rgn: pointer to memblock_region
+ */
+#define for_each_memblock_type(i, memblock_type, rgn)	\
+	for (i = 0, rgn = &memblock_type->regions[0];	\
+		i < memblock_type->count;		\
+		i++, rgn = &memblock_type->regions[i])
 
 #endif
