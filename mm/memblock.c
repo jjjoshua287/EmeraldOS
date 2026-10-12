@@ -216,28 +216,18 @@ int memblock_add(phys_addr_t base, phys_addr_t size)
 	return memblock_add_range(type, base, size, 0);
 }
 
-/**
- * memblock_reserve - add new reserved memblock region
- * @base: physical base address of the new region
- * @size: size of the new region
- * 
- * Add new memblock region [@base, @base + @size) to the "reserved" type.
- * See memblock_add_range() for more details.
- * 
- * Returns:
- * 0 on success, a negative number on failure.
- */
-int memblock_reserve(phys_addr_t base, phys_addr_t size)
+int __memblock_reserve(phys_addr_t base, phys_addr_t size, enum memblock_flags flags)
 {
 	struct memblock_type *type = &memblock.reserved;
 	phys_addr_t end = base + size - 1;
 
-	memblock_dbg("memblock_reserve: [0x%016llx-0x%016llx]\n", base, end);
+	memblock_dbg("memblock_reserve: [0x%016llx-0x%016llx] flags = %x\n", 
+		     base, end, flags);
 
-	return memblock_add_range(type, base, size, 0);
+	return memblock_add_range(type, base, size, flags);
 }
 
-void memblock_dump(struct memblock_type *type)
+static void memblock_dump(struct memblock_type *type)
 {
 	int i = 0;
 	struct memblock_region *rgn;

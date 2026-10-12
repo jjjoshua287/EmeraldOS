@@ -2,6 +2,7 @@
 #define EMERALD_MEMBLOCK_H
 
 #include <emerald/types.h>
+#include <emerald/compiler.h>
 
 /* the initial number of memblock regions, can be increased dynamically */
 #define MEMBLOCK_INIT_REGIONS 128
@@ -77,7 +78,30 @@ extern bool memblock_debug;
 
 int memblock_add(phys_addr_t base, phys_addr_t size);
 int memblock_remove(phys_addr_t base, phys_addr_t size);
-int memblock_reserve(phys_addr_t base, phys_addr_t size);
+
+int __memblock_reserve(phys_addr_t base, phys_addr_t size, enum memblock_flags flags);
+
+/**
+ * memblock_reserve - add new reserved memblock region
+ * @base: physical base address of the new region
+ * @size: size of the new region
+ * 
+ * Add new memblock region [@base, @base + @size) to the "reserved" type.
+ * See memblock_add_range() for more details.
+ * 
+ * Returns:
+ * 0 on success, a negative number on failure.
+ */
+static __always_inline int memblock_reserve(phys_addr_t base, phys_addr_t size)
+{
+	return __memblock_reserve(base, size, 0);
+}
+
+/* add new memblock region reserved for kernel use */
+static __always_inline int memblock_reserve_kern(phys_addr_t base, phys_addr_t size)
+{
+	return __memblock_reserve(base, size, MEMBLOCK_RSVD_KERN);
+}
 
 void memblock_dump_all(void);
 
