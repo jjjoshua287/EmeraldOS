@@ -67,8 +67,6 @@ static void memblock_merge_regions(struct memblock_type *type,
 			BUG_ON(this->base + this->size > next->base);
 			continue;
 		}
-
-		memblock_dbg("merging regions [0x%016llx-0x%016llx]\n", this->base, next->base);
 		
 		this->size += next->size;
 		/* shift entries back by one */
@@ -121,7 +119,8 @@ static void memblock_insert_region(struct memblock_type *type, int idx, phys_add
 int memblock_add_range(struct memblock_type *type, phys_addr_t base, phys_addr_t size, 
 		       enum memblock_flags flags)
 {
-	int idx;
+	int idx, nr_new;
+	int start_rgn = -1, end_rgn = 0;
 	bool insert = false;
 	struct memblock_region *rgn;
 	phys_addr_t end = base + memblock_cap_size(base, &size);
@@ -146,7 +145,7 @@ repeat:
 	 * to count the number of regions needed for the range and the second
 	 * time with %true @insert to actually insert them.
 	 */
-	int nr_new = 0;
+	nr_new = 0;
 
 	for_each_memblock_type(idx, type, rgn) {
 		phys_addr_t rbase = rgn->base;
@@ -162,8 +161,12 @@ repeat:
 		if (rbase > base) {
 			WARN_ON(flags != rgn->flags);
 			nr_new++;
-			if (insert)
+			if (insert) {
+				if (start_rgn == -1)
+					start_rgn = idx;
+				end_rgn = idx + 1;
 				memblock_insert_region(type, idx++, base, rbase - base, flags);
+			}
 		}
 		/* the area before @rend has been resolved. */
 		base = min(rend, end);
@@ -172,8 +175,12 @@ repeat:
 	/* insert the remaining portion */
 	if (base < end) {
 		nr_new++;
-		if (insert)
+		if (insert) {
+			if (start_rgn == -1)
+				start_rgn = idx;
+			end_rgn = idx + 1;
 			memblock_insert_region(type, idx, base, end - base, flags);
+		}
 	}
 
 	if (!nr_new)
@@ -190,7 +197,7 @@ repeat:
 		insert = true;
 		goto repeat;
 	} else {
-		memblock_merge_regions(type, idx - nr_new, idx);
+		memblock_merge_regions(type, start_rgn, end_rgn);
 		return 0;
 	}
 }
