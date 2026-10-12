@@ -42,6 +42,44 @@ static inline phys_addr_t memblock_cap_size(phys_addr_t base, phys_addr_t *size)
 }
 
 /**
+ * memblock_merge_regions - merge neighboring compatible regions
+ * @type: memblock type to scan
+ * @start_rgn: start scanning from (@start_rgn - 1)
+ * @end_rgn: end scanning at (@end_rgn - 1)
+ * 
+ * Scan @type and merge neighboring compatible regions in [@start_rgn - 1, @end_rgn)
+ */
+static void memblock_merge_regions(struct memblock_type *type, 
+				   unsigned long start_rgn, 
+				   unsigned long end_rgn)
+{
+	int i = 0;
+	if (start_rgn)
+		i = start_rgn - 1;
+	end_rgn = min(end_rgn, type->count - 1);
+
+	while (i < end_rgn) {
+		struct memblock_region *this = &type->regions[i];
+		struct memblock_region *next = &type->regions[i + 1];
+		if ((this->base + this->size != next->base) || 
+		    (this->flags != next->flags)) {
+			i++;
+			BUG_ON(this->base + this->size > next->base);
+			continue;
+		}
+
+		memblock_dbg("merging regions [0x%016llx-0x%016llx]\n", this->base, next->base);
+		
+		this->size += next->size;
+		/* shift entries back by one */
+		memmove(next, next + 1, (type->count - (i + 2)) * sizeof(struct memblock_region));
+		type->count--;
+		end_rgn--;
+
+	}
+}
+
+/**
  * memblock_insert_region - insert new memblock region
  * @type: memblock type to insert into
  * @idx: index for insertion point
@@ -152,7 +190,7 @@ repeat:
 		insert = true;
 		goto repeat;
 	} else {
-		// merge the regions
+		memblock_merge_regions(type, idx - nr_new, idx);
 		return 0;
 	}
 }

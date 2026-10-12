@@ -85,9 +85,9 @@ int memblock_reserve(phys_addr_t base, phys_addr_t size);
  * @memblock_type: pointer to memblock_type to iterate over
  * @rgn: pointer to memblock_region
  */
-#define for_each_memblock_type(i, memblock_type, rgn)	\
-	for (i = 0, rgn = &memblock_type->regions[0];	\
-		i < memblock_type->count;		\
-		i++, rgn = &memblock_type->regions[i])
+#define for_each_memblock_type(i, memblock_type, rgn)		\
+	for ((i) = 0, (rgn) = &memblock_type->regions[0];	\
+		(i) < memblock_type->count;			\
+		(i)++, (rgn) = &memblock_type->regions[(i)])
 
 #endif
