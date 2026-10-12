@@ -12,4 +12,7 @@ const char *e820_type_name(enum e820_type type);
 void print_e820_table(const struct e820_table *table);
 void insert_e820_entry(struct e820_table *table, u64 addr, u64 size, enum e820_type type);
 void sanitize_e820_table(struct e820_table *table);
+
+int e820_memblock_setup(struct e820_table *table);
+
 #endif

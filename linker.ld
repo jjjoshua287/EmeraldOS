@@ -19,6 +19,7 @@ SECTIONS
 
     /* Higher half VMA here */
     . += KERNEL_VMA;
+    __kernel_virt_start = .;
 
     .text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VMA) { 
         *(.text .text.*)
@@ -52,5 +53,7 @@ SECTIONS
     }
 
     . = ALIGN(4K);
+    __kernel_virt_end = .;
+    
     __kernel_end = . - KERNEL_VMA;
 }

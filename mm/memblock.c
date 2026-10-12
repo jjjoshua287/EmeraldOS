@@ -173,7 +173,7 @@ int memblock_add(phys_addr_t base, phys_addr_t size)
 	struct memblock_type *type = &memblock.memory;
 	phys_addr_t end = base + size - 1;
 	
-	memblock_dbg("memblock_add: [0x%016llx-0x%016llx]", base, end);
+	memblock_dbg("memblock_add: [0x%016llx-0x%016llx]\n", base, end);
 
 	return memblock_add_range(type, base, size, 0);
 }
@@ -194,7 +194,7 @@ int memblock_reserve(phys_addr_t base, phys_addr_t size)
 	struct memblock_type *type = &memblock.reserved;
 	phys_addr_t end = base + size - 1;
 
-	memblock_dbg("memblock_reserve: [0x%016llx-0x%016llx]", base, end);
+	memblock_dbg("memblock_reserve: [0x%016llx-0x%016llx]\n", base, end);
 
 	return memblock_add_range(type, base, size, 0);
 }

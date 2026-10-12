@@ -1,8 +1,10 @@
 #include <asm/e820/types.h>
+#include <emerald/types.h>
 #include <emerald/runtime.h>
 #include <emerald/string.h>
 #include <emerald/printk.h>
 #include <emerald/compiler.h>
+#include <emerald/memblock.h>
 
 const char *e820_type_name(enum e820_type type)
 {
@@ -73,4 +75,21 @@ void sanitize_e820_table(struct e820_table *table)
 	size_t size = (table->nr_entries - (w + 1)) * sizeof(struct e820_entry);
 	memset(&table->entries[w + 1], 0, size);
 	table->nr_entries = w + 1;
+}
+
+/* handover the e820 memory map to memblock */
+int e820_memblock_setup(struct e820_table *table)
+{
+	int ret = 0;
+
+	for (u32 i = 0; i < table->nr_entries; i++) {
+		struct e820_entry *entry = &table->entries[i];
+		if (entry->type == E820_TYPE_RAM)
+			ret |= memblock_add(entry->addr, entry->size);
+		else if (entry->type != E820_TYPE_UNUSABLE)
+			ret |= memblock_reserve(entry->addr, entry->size);
+	}
+	
+	printk("\n");
+	return ret;
 }
