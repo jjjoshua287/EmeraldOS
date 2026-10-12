@@ -60,6 +60,7 @@ include $(ARCH_DIR)/Makefile
 include kernel/Makefile
 include lib/Makefile
 include drivers/Makefile
+include mm/Makefile
 
 # compute kernel object files from the collected sources
 KERNEL_OBJS := $(addprefix $(KERNEL_BUILD)/,$(patsubst %.S,%.o,$(SRCS:.c=.o)))

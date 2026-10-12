@@ -142,9 +142,13 @@ repeat:
 		return 0;
 
 	if (!insert) {
-		/* resize the array if we don't have enough space (once I implement that) */
-		if (type->count + nr_new > type->max)
+		/* resize the array if we don't have enough space */
+		if (type->count + nr_new > type->max) {
+			/* warn for debugging until I actually handle the error */
+			WARN();
 			return -1;
+		}
+
 		insert = true;
 		goto repeat;
 	} else {
@@ -169,7 +173,28 @@ int memblock_add(phys_addr_t base, phys_addr_t size)
 	struct memblock_type *type = &memblock.memory;
 	phys_addr_t end = base + size - 1;
 	
-	memblock_dbg("%s: [0x%016llx-0x%016llx]", __func__, base, end);
+	memblock_dbg("memblock_add: [0x%016llx-0x%016llx]", base, end);
+
+	return memblock_add_range(type, base, size, 0);
+}
+
+/**
+ * memblock_reserve - add new reserved memblock region
+ * @base: physical base address of the new region
+ * @size: size of the new region
+ * 
+ * Add new memblock region [@base, @base + @size) to the "reserved" type.
+ * See memblock_add_range() for more details.
+ * 
+ * Returns:
+ * 0 on success, a negative number on failure.
+ */
+int memblock_reserve(phys_addr_t base, phys_addr_t size)
+{
+	struct memblock_type *type = &memblock.reserved;
+	phys_addr_t end = base + size - 1;
+
+	memblock_dbg("memblock_reserve: [0x%016llx-0x%016llx]", base, end);
 
 	return memblock_add_range(type, base, size, 0);
 }
