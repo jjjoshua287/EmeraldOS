@@ -90,6 +90,6 @@ int e820_memblock_setup(struct e820_table *table)
 			ret |= memblock_reserve(entry->addr, entry->size);
 	}
 	
-	printk("\n");
+	memblock_dump_all();
 	return ret;
 }

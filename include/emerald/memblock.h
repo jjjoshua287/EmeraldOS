@@ -79,6 +79,8 @@ int memblock_add(phys_addr_t base, phys_addr_t size);
 int memblock_remove(phys_addr_t base, phys_addr_t size);
 int memblock_reserve(phys_addr_t base, phys_addr_t size);
 
+void memblock_dump_all(void);
+
 /**
  * for_each_memblock_type - iterator for memblock_type->regions[]
  * @i: loop variable, set to 0

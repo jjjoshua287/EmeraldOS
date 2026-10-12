@@ -236,3 +236,36 @@ int memblock_reserve(phys_addr_t base, phys_addr_t size)
 
 	return memblock_add_range(type, base, size, 0);
 }
+
+void memblock_dump(struct memblock_type *type)
+{
+	int i = 0;
+	struct memblock_region *rgn;
+	printk("%s.count = 0x%lx\n", type->name, type->count);
+
+	for_each_memblock_type(i, type, rgn) {
+		phys_addr_t base = rgn->base;
+		phys_addr_t size = rgn->size;
+		phys_addr_t end = rgn->base + size - 1;
+		
+		printk("%s[%#x]\t[0x%016llx-0x%016llx], 0x%016llx bytes flags: %#x\n",
+			type->name, i, base, end, size, rgn->flags);
+	}
+}
+
+static void __memblock_dump_all(void)
+{
+	printk("Memblock Configuration:\n");
+	printk("Current allocation limit: 0x%016llx\n", memblock.curr_limit);
+	printk(" memory size = %016llx    reserved memory size: %016llx\n",
+		memblock.memory.total_size, memblock.reserved.total_size);
+	
+	memblock_dump(&memblock.memory);
+	memblock_dump(&memblock.reserved);
+}
+
+void memblock_dump_all(void)
+{
+	if (memblock_debug)
+		__memblock_dump_all();
+}
