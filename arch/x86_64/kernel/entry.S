@@ -71,6 +71,23 @@ asm_irq_\vec:
     jmp exc_wrapper
 .endm
 
+/* Macro for ISRs with thier own handler (no err) */
+.macro ISR_NOERR_HANDLED name, vec
+    .global asm_exc_\name
+    .extern handle_\name
+asm_exc_\name:
+    push $0
+    push $\vec
+
+    pushall
+    mov %rsp, %rdi
+    call handle_\name
+    popall
+
+    add $16, %rsp
+    iretq
+.endm
+
 /* Macro for ISRs with thier own handler */
 .macro ISR_ERR_HANDLED name, vec
     .global asm_exc_\name
@@ -98,7 +115,7 @@ ISR_NOERR nmi,                          2
 ISR_NOERR breakpoint,                   3
 ISR_NOERR overflow,                     4
 ISR_NOERR bound_range_exceeded,         5
-ISR_NOERR invalid_opcode,               6
+ISR_NOERR_HANDLED invalid_opcode,       6
 ISR_NOERR device_not_available,         7
 ISR_ERR   double_fault,                 8
 ISR_NOERR coproc_segment_overrun,       9
