@@ -11,7 +11,7 @@ struct fbcon {
     struct screen_info info;
     const struct font_desc *font;
 };
-extern struct fbcon framebuffer_con;
+extern struct fbcon fbcon;
 
 enum PxColor {
         BLACK  = 0x0,

@@ -11,26 +11,21 @@
 
 #include "tests.h"
 
-/* temporary function for logging progress of kernel */
-static void log_progress()
-{
-        printk("================ Current Progress ==================\n");
-        printk(" 1. Working Interrupt Handlers for CPU exceptions\n");
-        printk(" 2. Validated RSDT/XSDT\n");
-        printk(" 3. Use the Kernel's stack instead of UEFI's stack.\n");
-}
-
-int kernel_main()
+int kernel_main(struct boot_info *boot)
 {
         printk("EmeraldOS Kernel v%s\n\n", KERNEL_VERSION);
-        //log_progress();
         printk("Hello from ELF Kernel!\n");
         printk("Hello from virtual address: %#p", &kernel_main);
-        //run_dev_tests();
+        
+        #if CFG_TEST
+        run_dev_tests();
+        #endif
 
         #if CFG_PANIC
         BUG();
         #endif
+
+        printk("%d", boot->info.lfb_height);
 
         while (1);
         return 0;
@@ -47,6 +42,6 @@ int start_kernel(struct boot_info *boot)
                 boot->info.lfb_base, boot->info.lfb_base + boot->info.lfb_size);
         printk("RSDP addr: %#p\n", boot->rsdp);
         
-        kernel_main();
+        kernel_main(boot);
         return 0;
 }

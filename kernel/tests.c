@@ -42,9 +42,17 @@ void test_printk_visual() {
     printk("=== END PRINTK VISUAL TESTS ===\n");
 }
 
+void test_scroll(int rows)
+{
+	for (int i = 0; i < rows; i++)
+		printk("scrolling...\n");
+	printk("done scrolling\n");
+}
+
 void run_dev_tests()
 {
     test_printk_visual();
+    test_scroll(1024);
 }
 
 #else
