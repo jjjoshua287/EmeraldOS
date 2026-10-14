@@ -124,7 +124,7 @@ map_pages:
     mov %rdx, %r8
     orq %rsi, %r8
     movq %r8, (%rdi, %rcx, PT_ENTRY_SIZE)  /* pd[%rcx] = %r8 */
-    addq $KERNEL_PAGE_SIZE, %rdx
+    addq $HPAGE_SIZE, %rdx
     incq %rcx
     cmpq $PT_ENTRIES, %rcx
     jne .map_page

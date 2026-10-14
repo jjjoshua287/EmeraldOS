@@ -1,5 +1,6 @@
 #include <emerald/types.h>
 #include <emerald/limits.h>
+#include <emerald/errno.h>
 #include <emerald/minmax.h>
 #include <emerald/string.h>
 #include <emerald/printk.h>
@@ -42,6 +43,22 @@ static inline phys_addr_t memblock_cap_size(phys_addr_t base, phys_addr_t *size)
 }
 
 /**
+ * memblock_double_array - double the size of a memblock_region array
+ * @type: memblock_type of the regions array being doubled
+ * @start_addr: start of memory range to avoid overlap with
+ * @size: size of memory range to avoid overlap with
+ * 
+ * Returns:
+ * 0 on success, errno on failure
+ */
+static int memblock_double_array(struct memblock_type *type, 
+				 phys_addr_t start_addr,
+				 phys_addr_t size)
+{
+	return -ENOSYS; 	/* Not implemented yet */
+}
+
+/**
  * memblock_merge_regions - merge neighboring compatible regions
  * @type: memblock type to scan
  * @start_rgn: start scanning from (@start_rgn - 1)
@@ -67,13 +84,13 @@ static void memblock_merge_regions(struct memblock_type *type,
 			BUG_ON(this->base + this->size > next->base);
 			continue;
 		}
-		
 		this->size += next->size;
+		
 		/* shift entries back by one */
-		memmove(next, next + 1, (type->count - (i + 2)) * sizeof(struct memblock_region));
+		size_t bytes = (type->count - (i + 2)) * sizeof(struct memblock_region);
+		memmove(next, next + 1, bytes);
 		type->count--;
 		end_rgn--;
-
 	}
 }
 
@@ -114,7 +131,7 @@ static void memblock_insert_region(struct memblock_type *type, int idx, phys_add
  * all neighbouring compatible regions in @type are merged after the addition.
  * 
  * Returns:
- * 0 on success, a negative number on failure.
+ * 0 on success, errno on failure.
  */
 int memblock_add_range(struct memblock_type *type, phys_addr_t base, phys_addr_t size, 
 		       enum memblock_flags flags)
@@ -188,12 +205,10 @@ repeat:
 
 	if (!insert) {
 		/* resize the array if we don't have enough space */
-		if (type->count + nr_new > type->max) {
-			/* warn for debugging until I actually handle the error */
-			WARN();
-			return -1;
+		while (type->count + nr_new > type->max) {
+			if (memblock_double_array(type, base, size) < 0)
+				return -ENOMEM;
 		}
-
 		insert = true;
 		goto repeat;
 	} else {
@@ -211,7 +226,7 @@ repeat:
  * See memblock_add_range() for more details.
  * 
  * Returns:
- * 0 on success, a negative number on failure.
+ * 0 on success, errno on failure.
  */
 int memblock_add(phys_addr_t base, phys_addr_t size)
 {
@@ -232,6 +247,38 @@ int __memblock_reserve(phys_addr_t base, phys_addr_t size, enum memblock_flags f
 		     base, end, flags);
 
 	return memblock_add_range(type, base, size, flags);
+}
+
+/**
+ * memblock_remove_range - remove new memblock region
+ * @type: memblock type to remove region from
+ * @base: physical base address of the victim region
+ * @size: size of the victim region
+ * 
+ * Removes a memblock region [@base, @base + @size) from @type.
+ * 
+ * Returns:
+ * 0 on success, errno on failure.
+ */
+int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+{
+	int idx;
+	struct memblock_region *rgn;
+	phys_addr_t end = base + memblock_cap_size(base, &size);
+
+	if (!size || type->regions[0].size == 0)
+		return 0;
+	
+	for_each_memblock_type(idx, type, rgn) {
+		phys_addr_t rbase = rgn->base;
+		phys_addr_t rend = rgn->base + rgn->size;
+	
+		if (rbase >= end)
+			break;
+		if (rend <= base)
+			continue;
+
+	}
 }
 
 static void memblock_dump(struct memblock_type *type)

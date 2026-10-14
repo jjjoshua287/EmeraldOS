@@ -5,8 +5,6 @@
 #define PT_ENTRIES      512
 #define PT_ENTRY_SIZE   8
 
-#define KERNEL_PAGE_SIZE 0x200000    /* 2 MiB */
-
 /* Page Table Entry (PTE) Bits */
 #define PTE_P   1       /* Present Bit */
 #define PTE_RW  2       /* Read/Write Bit */
@@ -26,6 +24,10 @@
 #define KERNEL_LMA 	0x0000000000100000
 #define KERNEL_VMA 	0xffffffff80000000
 #define PAGE_OFFSET 	0xffff888000000000
+
+#define PAGE_SHIFT 	12
+#define PAGE_SIZE	(1UL << PAGE_SHIFT)	/* 4 KiB */
+#define HPAGE_SIZE 	0x200000    		/* 2 MiB */
 
 #ifndef __ASSEMBLER__
 #include <emerald/types.h>
