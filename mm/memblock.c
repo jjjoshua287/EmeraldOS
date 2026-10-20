@@ -272,38 +272,34 @@ static void memblock_discard(struct memblock_type *type, int idx)
 }
 
 /**
- * memblock_split_region - split a region at a given address
+ * memblock_split_region - make a hole in a memblock region
  * @type: memblock type
- * @idx: index of the region to split
- * @addr: physical address to split at
+ * @idx: index of victim region
+ * @base: start address of range
+ * @end: end address of range
  *
  * splits the region into: 
- * 	- [@base, @addr) at @idx
- * 	- [@addr, @base + @size) at @idx + 1
+ * 	- [rbase, @base) at @idx
+ * 	- [@end, rend) at @idx + 1
  * 
  * Returns:
  * 0 on success, errno on failure
  */
-static int memblock_split_region(struct memblock_type *type, int idx, phys_addr_t addr)
+static int memblock_split_region(struct memblock_type *type, int idx, 
+				 phys_addr_t base, phys_addr_t end)
 {
 	struct memblock_region *rgn = &type->regions[idx];
         phys_addr_t rend = rgn->base + rgn->size;
 
-
-        if (addr <= rgn->base || addr >= rend)
-                return 0;
-
         if (type->count + 1 > type->max) {
-                if (memblock_double_array(type, addr, rend - addr) < 0)
+                if (memblock_double_array(type, base, end - base) < 0)
                         return -ENOMEM;
                 rgn = &type->regions[idx];
         }
 
-        /* Shrink original region to lower half */
-        rgn->size = addr - rgn->base;
-
-        /* Insert upper half immediately following */
-        memblock_insert_region(type, idx + 1, addr, rend - addr, rgn->flags);
+        /* Shrink lower fragment and insert high fragment */
+        rgn->size = base - rgn->base;
+	memblock_insert_region(type, idx, end, rend - end, rgn->flags);
         return 0;
 }
 
@@ -340,19 +336,10 @@ int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_add
 
 		/* split @rgn if the range is inside @rgn */
 		if (rbase < base && rend > end) {
-			if (memblock_split_region(type, idx, base) < 0)
-				return -ENOMEM;
-			
-			/* Split the remaining section */
-			if (memblock_split_region(type, idx + 1, end) < 0)
-				return -ENOMEM;
-
-			/* discard the middle section */
-			memblock_discard(type, idx);
-			return 0;
+			return memblock_split_region(type, idx, base, end);
 		}
 
-		/* check if range overlaps the lower section */
+		/* range overlaps the right section */
 		if (rbase < base) {
 			rgn->size = base - rbase;
 		} else if (rend <= end) {
