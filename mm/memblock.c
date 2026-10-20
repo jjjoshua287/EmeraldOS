@@ -250,6 +250,64 @@ int __memblock_reserve(phys_addr_t base, phys_addr_t size, enum memblock_flags f
 }
 
 /**
+ * memblock_discard - remove a memory region from a memory type
+ * @type: memory type of the victim region
+ * @idx: index of the victim region
+ * 
+ * removes the region at type->regions[idx] and shifts elements down
+ */
+static void memblock_discard(struct memblock_type *type, int idx)
+{
+	struct memblock_region *rgn = &type->regions[idx];
+	memset(rgn, 0, sizeof(*rgn));
+
+	if (type->count == 0)
+		return;
+	
+	BUG_ON(type->count >= type->max);
+
+	if (idx != type->count - 1)
+		memmove(rgn, rgn + 1, (type->count - (idx + 1)) * sizeof(*rgn));
+	type->count--;
+}
+
+/**
+ * memblock_split_region - split a region at a given address
+ * @type: memblock type
+ * @idx: index of the region to split
+ * @addr: physical address to split at
+ *
+ * splits the region into: 
+ * 	- [@base, @addr) at @idx
+ * 	- [@addr, @base + @size) at @idx + 1
+ * 
+ * Returns:
+ * 0 on success, errno on failure
+ */
+static int memblock_split_region(struct memblock_type *type, int idx, phys_addr_t addr)
+{
+	struct memblock_region *rgn = &type->regions[idx];
+        phys_addr_t rend = rgn->base + rgn->size;
+
+
+        if (addr <= rgn->base || addr >= rend)
+                return 0;
+
+        if (type->count + 1 > type->max) {
+                if (memblock_double_array(type, addr, rend - addr) < 0)
+                        return -ENOMEM;
+                rgn = &type->regions[idx];
+        }
+
+        /* Shrink original region to lower half */
+        rgn->size = addr - rgn->base;
+
+        /* Insert upper half immediately following */
+        memblock_insert_region(type, idx + 1, addr, rend - addr, rgn->flags);
+        return 0;
+}
+
+/**
  * memblock_remove_range - remove new memblock region
  * @type: memblock type to remove region from
  * @base: physical base address of the victim region
@@ -272,13 +330,64 @@ int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_add
 	for_each_memblock_type(idx, type, rgn) {
 		phys_addr_t rbase = rgn->base;
 		phys_addr_t rend = rgn->base + rgn->size;
-	
+
 		if (rbase >= end)
 			break;
 		if (rend <= base)
 			continue;
 
+		/* @rgn is guarenteed to overlap */
+
+		/* split @rgn if the range is inside @rgn */
+		if (rbase < base && rend > end) {
+			if (memblock_split_region(type, idx, base) < 0)
+				return -ENOMEM;
+			
+			/* Split the remaining section */
+			if (memblock_split_region(type, idx + 1, end) < 0)
+				return -ENOMEM;
+
+			/* discard the middle section */
+			memblock_discard(type, idx);
+			return;
+		}
+
+		/* check if range overlaps the lower section */
+		if (rbase < base) {
+			rgn->size = base - rbase;
+		} else if (rend <= end) {
+			/* entire region inside range */
+			memblock_discard(type, idx);
+			idx--;
+		} else {
+			/* range overlaps the higher section */
+			rgn->base = end;
+			rgn->size = rend - end;
+		} 
 	}
+
+	return 0;
+}
+
+/**
+ * memblock_remove - remove a memory region
+ * @base: physical base address of the victim region
+ * @size: size of the new region
+ * 
+ * Remove memblock region [@base, @base + @size) from the "memory" type.
+ * See memblock_remove_range() for more details.
+ * 
+ * Returns:
+ * 0 on success, errno on failure.
+ */
+int memblock_remove(phys_addr_t base, phys_addr_t size)
+{
+	struct memblock_type *type = &memblock.memory;
+	phys_addr_t end = base + size - 1;
+	
+	memblock_dbg("memblock_remove: [0x%016llx-0x%016llx]\n", base, end);
+
+	return memblock_remove_range(type, base, size);
 }
 
 static void memblock_dump(struct memblock_type *type)
