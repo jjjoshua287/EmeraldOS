@@ -19,41 +19,41 @@ typedef u64 efi_phys_addr_t;
 typedef u64 efi_virt_addr_t;
 
 typedef enum {
-        AllocateAnyPages,       /* Memory Anywhere */
-        AllocateMaxAddress,     /* Memory at or below Memory */
-        AllocateAddress,        /* Memory at exactly Memory */
-        MaxAllocateType
+	AllocateAnyPages,       /* Memory Anywhere */
+	AllocateMaxAddress,     /* Memory at or below Memory */
+	AllocateAddress,        /* Memory at exactly Memory */
+	MaxAllocateType
 } efi_allocate_type;
 
 typedef enum {
-        EfiReservedMemoryType,
-        EfiLoaderCode,
-        EfiLoaderData,
-        EfiBootServicesCode,
-        EfiBootServicesData,
-        EfiRuntimeServicesCode,
-        EfiRuntimeServicesData,
-        EfiConventionalMemory,
-        EfiUnusableMemory,
-        EfiACPIReclaimMemory,
-        EfiACPIMemoryNVS,
-        EfiMemoryMappedIO,
-        EfiMemoryMappedIOPortSpace,
-        EfiPalCode,
-        EfiPersistentMemory,
-        EfiUnacceptedMemoryType
+	EfiReservedMemoryType,
+	EfiLoaderCode,
+	EfiLoaderData,
+	EfiBootServicesCode,
+	EfiBootServicesData,
+	EfiRuntimeServicesCode,
+	EfiRuntimeServicesData,
+	EfiConventionalMemory,
+	EfiUnusableMemory,
+	EfiACPIReclaimMemory,
+	EfiACPIMemoryNVS,
+	EfiMemoryMappedIO,
+	EfiMemoryMappedIOPortSpace,
+	EfiPalCode,
+	EfiPersistentMemory,
+	EfiUnacceptedMemoryType
 } efi_memory_type;
 
 typedef struct {
-        u32             Type;
-        efi_phys_addr_t PhysicalStart;
-        efi_virt_addr_t VirtualStart;
-        u64             NumberOfPages;
-        u64             Attribute;
+	u32             Type;
+	efi_phys_addr_t PhysicalStart;
+	efi_virt_addr_t VirtualStart;
+	u64             NumberOfPages;
+	u64             Attribute;
 } efi_memory_descriptor;
 
 static_assert(offsetof(efi_memory_descriptor, PhysicalStart) == 8, 
-        "PhysicalStart must be aligned on a 4 KiB boundary");
+	"PhysicalStart must be aligned on a 4 KiB boundary");
 
 #define EFI_MEMORY_DESCRIPTOR_VERSION 1
 
@@ -89,20 +89,20 @@ static_assert(offsetof(efi_memory_descriptor, PhysicalStart) == 8,
 #define EFI_ERROR(A) (RETURN_ERROR(A))
 
 typedef struct {
-        u32 Data1;
-        u16 Data2;
-        u16 Data3;
-        u8  Data4[8];
+	u32 Data1;
+	u16 Data2;
+	u16 Data3;
+	u8  Data4[8];
 } efi_guid_t;
 
 
 // EFI table header
 typedef struct {
-        u64 Signature;
-        u32 Revision;
-        u32 HeaderSize;
-        u32 CRC32;
-        u32 Reserved;
+	u64 Signature;
+	u32 Revision;
+	u32 HeaderSize;
+	u32 CRC32;
+	u32 Reserved;
 } efi_table_hdr_t;
 
 typedef struct efi_boot_services efi_boot_services_t;
@@ -123,26 +123,26 @@ typedef struct efi_boot_services efi_boot_services_t;
 typedef struct {
 	efi_table_hdr_t hdr;
 
-        // Time Services
+	// Time Services
 	void *GetTime;
 	void *SetTime;
 	void *GetWakeupTime;
 	void *SetWakeupTime;
 
-        // Virtual Memory Services (not implemented)
+	// Virtual Memory Services (not implemented)
 	void *SetVirtualAddressMap;
 	void *ConvertPointer;
 
-        // Variable Services
+	// Variable Services
 	void *GetVariable;
 	void *GetNextVariable;
 	void *SetVariable;
 
-        // Miscellaneous Services
+	// Miscellaneous Services
 	void *GetNextHighMonoCount;
 	void *ResetSystem;
 
-        // Capsule/Variable Info (not implemented)
+	// Capsule/Variable Info (not implemented)
 	void *UpdateCapsule;
 	void *QueryCapsuleCaps;
 	void *QueryVariableInfo;
@@ -153,11 +153,11 @@ typedef struct {
 */
 #define NULL_GUID \
     { 0x00000000, 0x0000, 0x0000, \
-        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } }
+	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } }
 
 #define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID \
     { 0x9042a9de, 0x23dc, 0x4a38, \
-        { 0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a } }
+	{ 0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a } }
 
 /*
  * ACPI Table GUID definitions
@@ -176,8 +176,8 @@ typedef struct {
 #define EFI_ACPI_20_TABLE_GUID  EFI_ACPI_TABLE_GUID
 
 typedef struct {
-        efi_guid_t VendorGuid;
-        void       *VendorTable;
+	efi_guid_t VendorGuid;
+	void       *VendorTable;
 } efi_cfg_table_t;
 
 typedef void* efi_event_t;
@@ -197,33 +197,33 @@ struct efi_simple_text_input_protocol {
 };
 
 struct efi_simple_text_output_protocol {
-        efi_status_t (*Reset)(
-        	struct efi_simple_text_output_protocol *This,
-                bool ExtendedVerification
-        );
-        efi_status_t (*OutputString)(
-                struct efi_simple_text_output_protocol *This,
-                efi_char16_t *String
-        );
+	efi_status_t (*Reset)(
+		struct efi_simple_text_output_protocol *This,
+		bool ExtendedVerification
+	);
+	efi_status_t (*OutputString)(
+		struct efi_simple_text_output_protocol *This,
+		efi_char16_t *String
+	);
 };
 
 typedef struct efi_simple_text_input_protocol efi_simple_text_input_protocol_t;
 typedef struct efi_simple_text_output_protocol efi_simple_text_output_protocol_t;
 
 typedef struct efi_system_table { 
-        efi_table_hdr_t                   Hdr;
-        efi_char16_t                      *FirmwareVendor;
-        u32                               FirmwareRevision;
-        efi_handle_t                      ConsoleInHandle;
-        struct efi_simple_text_input_protocol *ConIn;
-        efi_handle_t                      ConsoleOutHandle;
-        struct efi_simple_text_output_protocol *ConOut;
-        efi_handle_t                      *StandardErrorHandle;
-        void                              *StdErr;
-        void                              *RuntimeServices;
-        efi_boot_services_t               *BootServices;
-        u64                               NumberOfTableEntries;
-        efi_cfg_table_t                   *ConfigurationTable;
+	efi_table_hdr_t                   Hdr;
+	efi_char16_t                      *FirmwareVendor;
+	u32                               FirmwareRevision;
+	efi_handle_t                      ConsoleInHandle;
+	struct efi_simple_text_input_protocol *ConIn;
+	efi_handle_t                      ConsoleOutHandle;
+	struct efi_simple_text_output_protocol *ConOut;
+	efi_handle_t                      *StandardErrorHandle;
+	void                              *StdErr;
+	void                              *RuntimeServices;
+	efi_boot_services_t               *BootServices;
+	u64                               NumberOfTableEntries;
+	efi_cfg_table_t                   *ConfigurationTable;
 } efi_system_table_t;
 
 #endif // EMERALD_EFI_H

@@ -5,17 +5,17 @@
 
 static __always_inline void native_irq_disable(void)
 {
-    asm volatile("cli": : :"memory");
+	asm volatile("cli": : :"memory");
 }
 
 static __always_inline void native_irq_enable(void)
 {
-    asm volatile("sti": : :"memory");
+	asm volatile("sti": : :"memory");
 }
 
 static __always_inline void native_halt(void)
 {
-    asm volatile("hlt": : :"memory");
+	asm volatile("hlt": : :"memory");
 }
 
 #endif /* ASM_X86_64_IRQ_H */

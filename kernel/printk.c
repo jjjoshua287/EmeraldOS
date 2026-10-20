@@ -6,14 +6,14 @@
 
 void printk(const char *restrict fmt, ...)
 {
-        char kbuf[512];
-        va_list args;
+	char kbuf[512];
+	va_list args;
 
-        va_start(args, fmt);
-        vsnprintf(kbuf, sizeof(kbuf), fmt, args);
-        va_end(args);
+	va_start(args, fmt);
+	vsnprintf(kbuf, sizeof(kbuf), fmt, args);
+	va_end(args);
 
-        char *ptr = kbuf;
-        while (*ptr)
-                fbcon_write(*ptr++);
+	char *ptr = kbuf;
+	while (*ptr)
+		fbcon_write(*ptr++);
 }

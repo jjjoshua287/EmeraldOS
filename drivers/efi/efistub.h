@@ -6,98 +6,98 @@
 extern const efi_system_table_t *efi_system_table;
 
 struct efi_boot_services {
-        efi_table_hdr_t Hdr;
-        
-        // Task Priority Services
-        void *RaiseTPL;
-        void *RestoreTPL;
-        
-        // Memory Services
-        efi_status_t (*AllocatePages)(
-                efi_allocate_type Type,
-                efi_memory_type MemoryType,
-                u64 Pages,
-                efi_phys_addr_t *Memory
-        );
-        void *FreePages;
-        efi_status_t (*GetMemoryMap)(
-                u64                   *MemoryMapSize,
-                efi_memory_descriptor *MemoryMap,
-                u64                   *MapKey,
-                u64                   *DescriptorSize,
-                u32                   *DescriptorVersion
-        );
-        efi_status_t (*AllocatePool)(
-                efi_memory_type PoolType,
-                u64             Size,
-                void            **Buffer
-        );
-        void *FreePool;
+	efi_table_hdr_t Hdr;
+	
+	// Task Priority Services
+	void *RaiseTPL;
+	void *RestoreTPL;
+	
+	// Memory Services
+	efi_status_t (*AllocatePages)(
+		efi_allocate_type Type,
+		efi_memory_type MemoryType,
+		u64 Pages,
+		efi_phys_addr_t *Memory
+	);
+	void *FreePages;
+	efi_status_t (*GetMemoryMap)(
+		u64                   *MemoryMapSize,
+		efi_memory_descriptor *MemoryMap,
+		u64                   *MapKey,
+		u64                   *DescriptorSize,
+		u32                   *DescriptorVersion
+	);
+	efi_status_t (*AllocatePool)(
+		efi_memory_type PoolType,
+		u64             Size,
+		void            **Buffer
+	);
+	void *FreePool;
 
-        // Event and Timer Services
-        void *CreateEvent;
-        void *SetTimer;
-        void *WaitForEvent;
-        void *SignalEvent;
-        void *CloseEvent;
-        void *CheckEvent;
+	// Event and Timer Services
+	void *CreateEvent;
+	void *SetTimer;
+	void *WaitForEvent;
+	void *SignalEvent;
+	void *CloseEvent;
+	void *CheckEvent;
 
-        // Protocol Handler Services
-        void *InstallProtocolInterface;
-        void *ReinstallProtocolInterface;
-        void *UninstallProtocolInterface;
-        void *HandleProtocol;
-        void *Reserved;
-        void *RegisterProtocolNotify;
-        void *LocateHandle;
-        void *LocateDevicePath;
-        efi_status_t (*InstallConfigurationTable)(
-                efi_guid_t      *Guid,
-                void            *Table
-        );
+	// Protocol Handler Services
+	void *InstallProtocolInterface;
+	void *ReinstallProtocolInterface;
+	void *UninstallProtocolInterface;
+	void *HandleProtocol;
+	void *Reserved;
+	void *RegisterProtocolNotify;
+	void *LocateHandle;
+	void *LocateDevicePath;
+	efi_status_t (*InstallConfigurationTable)(
+		efi_guid_t      *Guid,
+		void            *Table
+	);
 
-        // Image Services
-        void *LoadImage;
-        void *StartImage;
-        void *Exit;
-        void *UnloadImage;
-        efi_status_t (*ExitBootServices)(
-                efi_handle_t    ImageHandle,
-                u64             MapKey
-        );
+	// Image Services
+	void *LoadImage;
+	void *StartImage;
+	void *Exit;
+	void *UnloadImage;
+	efi_status_t (*ExitBootServices)(
+		efi_handle_t    ImageHandle,
+		u64             MapKey
+	);
 
-        // Misc. Services
-        void *GetNextMonotonicCount;
-        void *Stall;
-        void *SetWatchdogTimer;
+	// Misc. Services
+	void *GetNextMonotonicCount;
+	void *Stall;
+	void *SetWatchdogTimer;
 
-        // DriverSupport Services
-        void *ConnectController;
-        void *DisconnectController;
+	// DriverSupport Services
+	void *ConnectController;
+	void *DisconnectController;
 
-        // Open and Close Protocol Services
-        void *OpenProtocol;
-        void *CloseProtocol;
-        void *OpenProtocolInformation;
+	// Open and Close Protocol Services
+	void *OpenProtocol;
+	void *CloseProtocol;
+	void *OpenProtocolInformation;
 
-        //Library Services
-        void *ProtocolsPerHandle;
-        void *LocateHandleBuffer;
-        efi_status_t (*LocateProtocol)(
-                efi_guid_t *Protocol,
-                void       *Registration,
-                void       **Interface
-        );
-        void *InstallMultipleProtocolInterfaces;
-        void *UninstallMultipleProtocolInterfaces;
-        
-        // 32-bit CRC Services
-        void *CalculateCRC32;
-        
-        // Miscellaneous Services 2
-        void *CopyMem;
-        void *SetMem;
-        void *CreateEventEx;
+	//Library Services
+	void *ProtocolsPerHandle;
+	void *LocateHandleBuffer;
+	efi_status_t (*LocateProtocol)(
+		efi_guid_t *Protocol,
+		void       *Registration,
+		void       **Interface
+	);
+	void *InstallMultipleProtocolInterfaces;
+	void *UninstallMultipleProtocolInterfaces;
+	
+	// 32-bit CRC Services
+	void *CalculateCRC32;
+	
+	// Miscellaneous Services 2
+	void *CopyMem;
+	void *SetMem;
+	void *CreateEventEx;
 };
 
 #define PIXEL_RGB_RESERVED_8BIT_PER_COLOR	0
@@ -134,14 +134,14 @@ typedef struct {
 typedef struct efi_graphics_output_protocol {
     efi_status_t (*QueryMode)(
 	struct efi_graphics_output_protocol *This,
-        u32 ModeNumber,
-        unsigned long *SizeOfInfo,
-        efi_graphics_output_mode_info_t **Info
+	u32 ModeNumber,
+	unsigned long *SizeOfInfo,
+	efi_graphics_output_mode_info_t **Info
     );
 
     efi_status_t (*SetMode)(
-        struct efi_graphics_output_protocol *This,
-        u32 ModeNumber
+	struct efi_graphics_output_protocol *This,
+	u32 ModeNumber
     );
 
     void           *Blt;

@@ -6,17 +6,17 @@ typedef const unsigned char font_data_t;
 // Return the raw font data.
 static inline const unsigned char *font_data_buf(font_data_t *fd)
 {
-        return (const unsigned char *)fd;
+	return (const unsigned char *)fd;
 }
 
 // Font descriptor
 struct font_desc {
-        int idx;
-        const char *name;
-        unsigned int width, height;
-        unsigned int charcount;
-        font_data_t *data;
-        int pref;
+	int idx;
+	const char *name;
+	unsigned int width, height;
+	unsigned int charcount;
+	font_data_t *data;
+	int pref;
 };
 
 // Get the default font

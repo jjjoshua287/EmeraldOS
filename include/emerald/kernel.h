@@ -2,7 +2,7 @@
 #define KERNEL_H
 
 #ifndef KERNEL_VERSION
-        #define KERNEL_VERSION '0.0.1\0'
+	#define KERNEL_VERSION '0.0.1\0'
 #endif
 
 /* 

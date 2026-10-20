@@ -7,7 +7,7 @@
 
 static inline int guidcmp(efi_guid_t *a, efi_guid_t *b)
 {
-        return memcmp(a, b, sizeof(*a));
+	return memcmp(a, b, sizeof(*a));
 }
 
 /**
@@ -20,12 +20,12 @@ static inline int guidcmp(efi_guid_t *a, efi_guid_t *b)
  */
 void *get_efi_cfg_table(efi_system_table_t *SystemTable, efi_guid_t *guid)
 {
-        efi_cfg_table_t *tbl = SystemTable->ConfigurationTable;
-        for (u64 i = 0; i < SystemTable->NumberOfTableEntries; i++) {
-                if (guidcmp(&tbl[i].VendorGuid, guid) == 0)
-                        return tbl[i].VendorTable;
-        }
-        return NULL;
+	efi_cfg_table_t *tbl = SystemTable->ConfigurationTable;
+	for (u64 i = 0; i < SystemTable->NumberOfTableEntries; i++) {
+		if (guidcmp(&tbl[i].VendorGuid, guid) == 0)
+			return tbl[i].VendorTable;
+	}
+	return NULL;
 }
 
 efi_graphics_output_protocol_t *gop;
@@ -34,36 +34,36 @@ struct screen_info scr_info;
 // Locate Graphics Output Protocol
 static efi_status_t locate_gop(efi_boot_services_t *gBS)
 {
-        // Locate the Graphics Output Protocol
-        gop = NULL;
-        efi_guid_t guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-        efi_status_t status = gBS->LocateProtocol(&guid, NULL, (void **)&gop);
-        return status;
+	// Locate the Graphics Output Protocol
+	gop = NULL;
+	efi_guid_t guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+	efi_status_t status = gBS->LocateProtocol(&guid, NULL, (void **)&gop);
+	return status;
 }
 
 static efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTable)
 {
-        efi_status_t status = locate_gop(SystemTable->BootServices);
-        if (EFI_ERROR(status)) {
-                // TODO: Handle the error
-                SystemTable->ConOut->OutputString(SystemTable->ConOut, u"efi: failed to locate Graphics Output Protocol\n\r");
-        } else {
-                SystemTable->ConOut->OutputString(SystemTable->ConOut, u"efi: successfully located Graphics Output Protocol\n\r");
-                
-                scr_info.lfb_base   = gop->Mode->FrameBufferBase;
-                scr_info.lfb_ppsl   = gop->Mode->Info->PixelsPerScanLine;
-                scr_info.lfb_width  = gop->Mode->Info->HorizontalResolution;
-                scr_info.lfb_height = gop->Mode->Info->VerticalResolution;
-                scr_info.lfb_size   = gop->Mode->FrameBufferSize;
-        }
-        return status;
+	efi_status_t status = locate_gop(SystemTable->BootServices);
+	if (EFI_ERROR(status)) {
+		// TODO: Handle the error
+		SystemTable->ConOut->OutputString(SystemTable->ConOut, u"efi: failed to locate Graphics Output Protocol\n\r");
+	} else {
+		SystemTable->ConOut->OutputString(SystemTable->ConOut, u"efi: successfully located Graphics Output Protocol\n\r");
+		
+		scr_info.lfb_base   = gop->Mode->FrameBufferBase;
+		scr_info.lfb_ppsl   = gop->Mode->Info->PixelsPerScanLine;
+		scr_info.lfb_width  = gop->Mode->Info->HorizontalResolution;
+		scr_info.lfb_height = gop->Mode->Info->VerticalResolution;
+		scr_info.lfb_size   = gop->Mode->FrameBufferSize;
+	}
+	return status;
 }
 
 struct hw_memory_map hw_mem;
 
 static efi_status_t get_memory_map(efi_boot_services_t *gBS)
 {
-        struct hw_memory_map mmap = { .size = 0, .memoryMap = NULL };
+	struct hw_memory_map mmap = { .size = 0, .memoryMap = NULL };
 	efi_status_t status;
 
 	gBS->GetMemoryMap(&mmap.size, NULL, &mmap.key, &mmap.descriptorSize, &mmap.version);
@@ -82,16 +82,16 @@ static efi_status_t get_memory_map(efi_boot_services_t *gBS)
 // Handle ExitBootServices()
 static efi_status_t handle_exit(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
-        efi_status_t status = SystemTable->BootServices->ExitBootServices(ImageHandle, hw_mem.key);
-        if (status == EFI_SUCCESS)
-                return status;
+	efi_status_t status = SystemTable->BootServices->ExitBootServices(ImageHandle, hw_mem.key);
+	if (status == EFI_SUCCESS)
+		return status;
 
-        status = get_memory_map(SystemTable->BootServices);
-        if (EFI_ERROR(status))
-                return status;
-        
-        status = SystemTable->BootServices->ExitBootServices(ImageHandle, hw_mem.key);
-        return status;
+	status = get_memory_map(SystemTable->BootServices);
+	if (EFI_ERROR(status))
+		return status;
+	
+	status = SystemTable->BootServices->ExitBootServices(ImageHandle, hw_mem.key);
+	return status;
 }
 
 struct boot_info boot;
@@ -106,56 +106,56 @@ int efi_utoa(unsigned long long num, efi_char16_t *out_buf, int base);
 
 static void efi_puthex(efi_system_table_t *SystemTable, unsigned long long v)
 {
-        efi_char16_t tmp[65];
-        SystemTable->ConOut->OutputString(SystemTable->ConOut, (efi_char16_t *)u"0x");
-        efi_utoa(v, tmp, 16);
-        SystemTable->ConOut->OutputString(SystemTable->ConOut, tmp);
+	efi_char16_t tmp[65];
+	SystemTable->ConOut->OutputString(SystemTable->ConOut, (efi_char16_t *)u"0x");
+	efi_utoa(v, tmp, 16);
+	SystemTable->ConOut->OutputString(SystemTable->ConOut, tmp);
 }
 
 static void print_fb_info(efi_system_table_t *SystemTable) {
-        SystemTable->ConOut->OutputString(SystemTable->ConOut, u"fb_base=");
-        efi_puthex(SystemTable, scr_info.lfb_base);
-        SystemTable->ConOut->OutputString(SystemTable->ConOut, u"\n\rfb_size=");
-        efi_puthex(SystemTable, scr_info.lfb_size);
-        SystemTable->ConOut->OutputString(SystemTable->ConOut, u"\n\r");
+	SystemTable->ConOut->OutputString(SystemTable->ConOut, u"fb_base=");
+	efi_puthex(SystemTable, scr_info.lfb_base);
+	SystemTable->ConOut->OutputString(SystemTable->ConOut, u"\n\rfb_size=");
+	efi_puthex(SystemTable, scr_info.lfb_size);
+	SystemTable->ConOut->OutputString(SystemTable->ConOut, u"\n\r");
 }
 
 efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 {
-        efi_status_t status = setup_graphics_output_protocol(SystemTable);
-        if (EFI_ERROR(status))
-                return status;
+	efi_status_t status = setup_graphics_output_protocol(SystemTable);
+	if (EFI_ERROR(status))
+		return status;
 
-        status = get_memory_map(SystemTable->BootServices);
-        if (EFI_ERROR(status))
-                return status;
+	status = get_memory_map(SystemTable->BootServices);
+	if (EFI_ERROR(status))
+		return status;
 
-        efi_guid_t acpi_guid = EFI_ACPI_TABLE_GUID;
-        void *rsdp = get_efi_cfg_table(SystemTable, &acpi_guid);
-        if (rsdp == NULL) {
-                efi_guid_t acpi_legacy_guid = ACPI_TABLE_GUID;
-                rsdp = get_efi_cfg_table(SystemTable, &acpi_legacy_guid);
-        }
+	efi_guid_t acpi_guid = EFI_ACPI_TABLE_GUID;
+	void *rsdp = get_efi_cfg_table(SystemTable, &acpi_guid);
+	if (rsdp == NULL) {
+		efi_guid_t acpi_legacy_guid = ACPI_TABLE_GUID;
+		rsdp = get_efi_cfg_table(SystemTable, &acpi_legacy_guid);
+	}
 
-        print_fb_info(SystemTable);
+	print_fb_info(SystemTable);
 
-        kernel_entry_t entry = (kernel_entry_t)load_kernel(SystemTable->BootServices);
+	kernel_entry_t entry = (kernel_entry_t)load_kernel(SystemTable->BootServices);
 
-        if (likely(entry != NULL)) {
-                SystemTable->ConOut->OutputString(SystemTable->ConOut, u"Loaded Kernel\r\n");
-                status = handle_exit(ImageHandle, SystemTable);
-                if (EFI_ERROR(status))
-                        return status;
+	if (likely(entry != NULL)) {
+		SystemTable->ConOut->OutputString(SystemTable->ConOut, u"Loaded Kernel\r\n");
+		status = handle_exit(ImageHandle, SystemTable);
+		if (EFI_ERROR(status))
+			return status;
 
-                /* Give the Kernel the struct boot_info it expects and call its entry point. */
-                boot.rsdp = rsdp;
-                boot.info = scr_info;
-                efi_mmap_to_e820(&hw_mem, &boot.mem);
-                entry(&boot);
-        } else {
-                SystemTable->ConOut->OutputString(SystemTable->ConOut, u"Failed to load Kernel!\r\n");
-                return (efi_status_t)EFI_LOAD_ERROR;
-        }
+		/* Give the Kernel the struct boot_info it expects and call its entry point. */
+		boot.rsdp = rsdp;
+		boot.info = scr_info;
+		efi_mmap_to_e820(&hw_mem, &boot.mem);
+		entry(&boot);
+	} else {
+		SystemTable->ConOut->OutputString(SystemTable->ConOut, u"Failed to load Kernel!\r\n");
+		return (efi_status_t)EFI_LOAD_ERROR;
+	}
 
-        unreachable();
+	unreachable();
 }

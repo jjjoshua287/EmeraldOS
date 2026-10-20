@@ -14,12 +14,12 @@ struct fbcon {
 extern struct fbcon fbcon;
 
 enum PxColor {
-        BLACK  = 0x0,
-        WHITE  = 0x00FFFFFF,
-        RED    = 0x00FF0000,
-        GREEN  = 0x0000FF00,
-        BLUE   = 0x000000FF,
-        YELLOW = 0x00FFFF00,
+	BLACK  = 0x0,
+	WHITE  = 0x00FFFFFF,
+	RED    = 0x00FF0000,
+	GREEN  = 0x0000FF00,
+	BLUE   = 0x000000FF,
+	YELLOW = 0x00FFFF00,
 };
 
 /* raw function that may be used in further implementation */

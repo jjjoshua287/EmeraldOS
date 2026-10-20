@@ -6,8 +6,8 @@
 
 void show_regs_print_info()
 {
-        printk("Kernel Version: v%s\n", KERNEL_VERSION);
-        printk("REGISTER DUMP:\n");
+	printk("Kernel Version: v%s\n", KERNEL_VERSION);
+	printk("REGISTER DUMP:\n");
 }
 
 /**
@@ -18,10 +18,10 @@ void show_regs_print_info()
  */
 void show_regs(struct pt_regs *regs)
 {
-        if (unlikely(regs == NULL))
-                return;
-        show_regs_print_info();
-        __show_regs(regs);
+	if (unlikely(regs == NULL))
+		return;
+	show_regs_print_info();
+	__show_regs(regs);
 }
 
 /**

@@ -13,30 +13,30 @@ static bool panicking = false;
 /* Restart kernel by forcing a triple fault */
 [[noreturn]] void emergency_restart(void)
 {
-        machine_emergency_restart();
-        /* Prevent compiler from throwing -Winvalid-noreturn */
-        unreachable();
+	machine_emergency_restart();
+	/* Prevent compiler from throwing -Winvalid-noreturn */
+	unreachable();
 }
 
 /* prints an error message and registers if non-NULL. Halts PC */
 [[noreturn]] void panic(const char *msg, struct pt_regs *regs)
 {
-        /* Prevent recursive calls to panic() */
-        if (unlikely(panicking))
-                emergency_restart();
-        panicking = true;
+	/* Prevent recursive calls to panic() */
+	if (unlikely(panicking))
+		emergency_restart();
+	panicking = true;
 
-        printk("KERNEL PANIC!\n");
-        printk("%s\n\n", msg);
-        
-        if (regs) {
-                show_regs(regs);
-                printk("\n");
-        }
-        dump_stack(regs);
+	printk("KERNEL PANIC!\n");
+	printk("%s\n\n", msg);
+	
+	if (regs) {
+		show_regs(regs);
+		printk("\n");
+	}
+	dump_stack(regs);
 
-        /* Halt CPU */
-        native_irq_disable();
-        while (1)
-                native_halt();
+	/* Halt CPU */
+	native_irq_disable();
+	while (1)
+		native_halt();
 }
