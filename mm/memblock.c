@@ -259,6 +259,7 @@ int __memblock_reserve(phys_addr_t base, phys_addr_t size, enum memblock_flags f
 static void memblock_discard(struct memblock_type *type, int idx)
 {
 	struct memblock_region *rgn = &type->regions[idx];
+	type->total_size -= rgn->size;
 	memset(rgn, 0, sizeof(*rgn));
 
 	if (type->count == 0)
@@ -290,6 +291,7 @@ static int memblock_split_region(struct memblock_type *type, int idx,
 {
 	struct memblock_region *rgn = &type->regions[idx];
         phys_addr_t rend = rgn->base + rgn->size;
+	phys_addr_t rsize = rgn->size;
 
         if (type->count + 1 > type->max) {
                 if (memblock_double_array(type, base, end - base) < 0)
@@ -299,7 +301,8 @@ static int memblock_split_region(struct memblock_type *type, int idx,
 
         /* Shrink lower fragment and insert high fragment */
         rgn->size = base - rgn->base;
-	memblock_insert_region(type, idx, end, rend - end, rgn->flags);
+	type->total_size -= (rsize - rgn->size);
+	memblock_insert_region(type, idx + 1, end, rend - end, rgn->flags);
         return 0;
 }
 
@@ -325,6 +328,7 @@ int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_add
 	
 	for_each_memblock_type(idx, type, rgn) {
 		phys_addr_t rbase = rgn->base;
+		phys_addr_t rsize = rgn->size;
 		phys_addr_t rend = rgn->base + rgn->size;
 
 		if (rbase >= end)
@@ -344,15 +348,15 @@ int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_add
 			rgn->size = base - rbase;
 		} else if (rend <= end) {
 			/* entire region inside range */
-			memblock_discard(type, idx);
-			idx--;
+			memblock_discard(type, idx--);
+			continue;
 		} else {
 			/* range overlaps the higher section */
 			rgn->base = end;
 			rgn->size = rend - end;
-		} 
+		}
+		type->total_size -= (rsize - rgn->size);
 	}
-
 	return 0;
 }
 
@@ -408,4 +412,39 @@ void memblock_dump_all(void)
 {
 	if (memblock_debug)
 		__memblock_dump_all();
+}
+
+void test_memblock_visual()
+{
+	if (!memblock_debug)
+		return;
+
+        /* Base allocation: [0x1000 - 0xAFF], size 0xA000 */
+        memblock_add(0x1000, 0xa000);
+        
+        /* 1. Disjoint Left: No Change */
+        memblock_remove(0x0, 0x0800);
+        
+        /* 2. Adjacent Touch Right: No change */
+        memblock_remove(0xb000, 0x1000);
+        
+        /* 3. Internal Split: Add gap [0x5000, 0x7000) -> leaves 2 rgns */
+        memblock_remove(0x5000, 0x2000);
+        
+        /* 4. Overlap Head: Remove [0x0800, 0x2000) -> shrinks R0 base to 0x2000 */
+        memblock_remove(0x0800, 0x1800);
+        
+        /* 5. Trim Tail: Remove [0x4000, 0x4800) -> shrinks R0 to [0x2000, 0x4000) */
+        memblock_remove(0x4000, 0x0800);
+        
+        /* 6. Multiple: Remove [0x3800, 0x8000) -> trims R0 tail and R1 head across gap */
+        memblock_remove(0x3800, 0x4800);
+        
+        /* 7. Entire Region: Remove [0x1800, 0x3C00) -> deletes R0 completely */
+        memblock_remove(0x1800, 0x2400);
+
+        /* 8. Exact Match: Remove remaining [0x9000, 0xB000) -> empties table */
+        memblock_remove(0x8000, 0x3000);
+
+        memblock_dump_all();
 }

@@ -104,6 +104,7 @@ static __always_inline int memblock_reserve_kern(phys_addr_t base, phys_addr_t s
 }
 
 void memblock_dump_all(void);
+void test_memblock_visual(void);
 
 /**
  * for_each_memblock_type - iterator for memblock_type->regions[]
