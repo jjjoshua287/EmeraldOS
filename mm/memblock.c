@@ -349,7 +349,7 @@ int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_add
 
 			/* discard the middle section */
 			memblock_discard(type, idx);
-			return;
+			return 0;
 		}
 
 		/* check if range overlaps the lower section */
