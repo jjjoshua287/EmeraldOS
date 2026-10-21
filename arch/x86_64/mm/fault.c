@@ -16,7 +16,7 @@ static void print_fault_reason(unsigned long error_code, bool user)
 		(user) ? "user" : "kernel");
 	
 	printk("#PF: error_code(0x%04lx) - %s\n", error_code,
-		(!(error_code & X86_PF_PROT)) ? "not-persent page" :
+		(!(error_code & X86_PF_PROT)) ? "not-present page" :
 		(error_code & X86_PF_RSVD) ? "reserved bit violation" :
 		(error_code & X86_PF_PK) ? "protection keys violation" : 
 						"permissions violation");

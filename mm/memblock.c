@@ -401,20 +401,24 @@ static phys_addr_t memblock_find_free_area(phys_addr_t size, phys_addr_t align,
 {
 	int idx;
 	struct memblock_region *rgn;
+	struct memblock_region *rsvd_rgn;
 	struct memblock_type *mem = &memblock.memory;
 	struct memblock_type *rsvd = &memblock.reserved;
 
 	for_each_memblock_type(idx, mem, rgn) {
+		if (idx + 1 >= rsvd->count)
+			rsvd_rgn = &rsvd->regions[idx];
+
 		phys_addr_t rbase = rgn->base;
 		phys_addr_t rend = rgn->base + rgn->size;
 
 		/* we can't use this region if it's reserved */
-		if ((idx + 1 < rsvd->count) && (rbase == rsvd->regions[idx].base))
+		if (rbase >= rsvd_rgn->base && rend <= (rsvd_rgn->base + rsvd_rgn->size))
 			continue;
 
 		if (rbase >= end)
 			break;
-		if (rend < start);
+		if (rend <= start)
 			continue;
 		
 		if (rgn->size >= size && IS_ALIGNED(rbase, align))

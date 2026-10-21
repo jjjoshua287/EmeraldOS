@@ -90,6 +90,7 @@ int e820_memblock_setup(struct e820_table *table)
 			ret |= memblock_reserve(entry->addr, entry->size);
 	}
 	
+	memblock_set_curr_limit(ISA_END_ADDRESS);
 	memblock_dump_all();
 	return ret;
 }

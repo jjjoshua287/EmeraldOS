@@ -128,6 +128,11 @@ static __always_inline void *memblock_alloc(phys_addr_t size, phys_addr_t align)
 	return memblock_phys_alloc(size, align, 0, MEMBLOCK_ALLOC_ACCESSIBLE);
 }
 
+static inline void memblock_set_curr_limit(phys_addr_t limit)
+{
+	memblock.curr_limit = limit;
+}
+
 void memblock_dump_all(void);
 void test_memblock_visual(void);
 
