@@ -440,7 +440,7 @@ void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
 		return NULL;
 	if (memblock_reserve_kern(base, size) < 0)
 		return NULL;
-	return __va(base);
+	return phys_to_virt(base);
 }
 
 static void memblock_dump(struct memblock_type *type)
