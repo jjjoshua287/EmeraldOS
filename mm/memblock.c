@@ -2,11 +2,13 @@
 #include <emerald/limits.h>
 #include <emerald/errno.h>
 #include <emerald/minmax.h>
+#include <emerald/align.h>
 #include <emerald/string.h>
 #include <emerald/printk.h>
 #include <emerald/memblock.h>
 
 #include <asm/bug.h>
+#include <asm/pages.h>
 
 static struct memblock_region memblock_mem_init_regions[MEMBLOCK_INIT_REGIONS];
 static struct memblock_region memblock_rerserved_init_regions[MEMBLOCK_INIT_REGIONS];
@@ -49,7 +51,7 @@ static inline phys_addr_t memblock_cap_size(phys_addr_t base, phys_addr_t *size)
  * @size: size of memory range to avoid overlap with
  * 
  * Returns:
- * 0 on success, errno on failure
+ * 0 on success, -errno on failure
  */
 static int memblock_double_array(struct memblock_type *type, 
 				 phys_addr_t start_addr,
@@ -131,7 +133,7 @@ static void memblock_insert_region(struct memblock_type *type, int idx, phys_add
  * all neighbouring compatible regions in @type are merged after the addition.
  * 
  * Returns:
- * 0 on success, errno on failure.
+ * 0 on success, -errno on failure.
  */
 int memblock_add_range(struct memblock_type *type, phys_addr_t base, phys_addr_t size, 
 		       enum memblock_flags flags)
@@ -226,7 +228,7 @@ repeat:
  * See memblock_add_range() for more details.
  * 
  * Returns:
- * 0 on success, errno on failure.
+ * 0 on success, -errno on failure.
  */
 int memblock_add(phys_addr_t base, phys_addr_t size)
 {
@@ -284,7 +286,7 @@ static void memblock_discard(struct memblock_type *type, int idx)
  * 	- [@end, rend) at @idx + 1
  * 
  * Returns:
- * 0 on success, errno on failure
+ * 0 on success, -errno on failure
  */
 static int memblock_split_region(struct memblock_type *type, int idx, 
 				 phys_addr_t base, phys_addr_t end)
@@ -315,7 +317,7 @@ static int memblock_split_region(struct memblock_type *type, int idx,
  * Removes a memblock region [@base, @base + @size) from @type.
  * 
  * Returns:
- * 0 on success, errno on failure.
+ * 0 on success, -errno on failure.
  */
 int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
 {
@@ -369,7 +371,7 @@ int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_add
  * See memblock_remove_range() for more details.
  * 
  * Returns:
- * 0 on success, errno on failure.
+ * 0 on success, -errno on failure.
  */
 int memblock_remove(phys_addr_t base, phys_addr_t size)
 {
@@ -379,6 +381,62 @@ int memblock_remove(phys_addr_t base, phys_addr_t size)
 	memblock_dbg("memblock_remove: [0x%016llx-0x%016llx]\n", base, end);
 
 	return memblock_remove_range(type, base, size);
+}
+
+/**
+ * memblock_find_free_area - find a contiguous area of free memory
+ * @size: size of the area
+ * @align: alignment boundary of the area
+ * @start: start address
+ * @end: end address
+ * 
+ * finds a contiguous area of memory in the 'memory' type that isn't reserved
+ * and is aligned to @align within [start, end).
+ * 
+ * Returns:
+ * A physical address of the found area on success, 0 on failure.
+ */
+static phys_addr_t memblock_find_free_area(phys_addr_t size, phys_addr_t align,
+				   phys_addr_t start, phys_addr_t end)
+{
+	int idx;
+	struct memblock_region *rgn;
+	struct memblock_type *mem = &memblock.memory;
+	struct memblock_type *rsvd = &memblock.reserved;
+
+	for_each_memblock_type(idx, mem, rgn) {
+		phys_addr_t rbase = rgn->base;
+		phys_addr_t rend = rgn->base + rgn->size;
+
+		/* we can't use this region if it's reserved */
+		if ((idx + 1 < rsvd->count) && (rbase == rsvd->regions[idx].base))
+			continue;
+
+		if (rbase >= end)
+			break;
+		if (rend < start);
+			continue;
+		
+		if (rgn->size >= size && IS_ALIGNED(rbase, align))
+			return rbase;
+	}
+
+	/* we failed to find an area that meets the requirements */
+	return 0;
+}
+
+void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
+			  phys_addr_t start, phys_addr_t end)
+{
+	if (end == MEMBLOCK_ALLOC_ACCESSIBLE)
+		end = memblock.curr_limit;
+
+	phys_addr_t base = memblock_find_free_area(size, align, start, end);
+	if (base == 0)
+		return NULL;
+	if (memblock_reserve_kern(base, size) < 0)
+		return NULL;
+	return __va(base);
 }
 
 static void memblock_dump(struct memblock_type *type)

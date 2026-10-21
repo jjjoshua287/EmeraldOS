@@ -10,6 +10,6 @@
 /* round a value down to the previous mutiple of a */
 #define ALIGN_DOWN(x, a) 	ALIGN((x) - ((a) - 1), (a))
 
-#define IS_ALIGNED(x, a) 	(((x) & (typeof(x)(a) - 1)) == 0)
+#define IS_ALIGNED(x, a) 	(((x) & ((typeof(x))(a) - 1)) == 0)
 
 #endif

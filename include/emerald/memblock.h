@@ -79,6 +79,15 @@ extern bool memblock_debug;
 int memblock_add(phys_addr_t base, phys_addr_t size);
 int memblock_remove(phys_addr_t base, phys_addr_t size);
 
+/* 
+ * low level helpers 
+ */
+int memblock_add_range(struct memblock_type *type, phys_addr_t base,
+		       phys_addr_t size, enum memblock_flags flags);
+
+int memblock_remove_range(struct memblock_type *type, phys_addr_t base, 
+			  phys_addr_t size);
+
 int __memblock_reserve(phys_addr_t base, phys_addr_t size, enum memblock_flags flags);
 
 /**
@@ -101,6 +110,22 @@ static __always_inline int memblock_reserve(phys_addr_t base, phys_addr_t size)
 static __always_inline int memblock_reserve_kern(phys_addr_t base, phys_addr_t size)
 {
 	return __memblock_reserve(base, size, MEMBLOCK_RSVD_KERN);
+}
+
+void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
+			  phys_addr_t start, phys_addr_t end);
+
+/**
+ * memblock_alloc - allocate an contiguous block of memory during early boot
+ * @size: how many bytes to allocate
+ * @align: alignment boundary
+ * 
+ * Returns:
+ * A kernel virtual address ready for use, NULL on failure
+ */
+static __always_inline void *memblock_alloc(phys_addr_t size, phys_addr_t align)
+{
+	return memblock_phys_alloc(size, align, 0, MEMBLOCK_ALLOC_ACCESSIBLE);
 }
 
 void memblock_dump_all(void);
