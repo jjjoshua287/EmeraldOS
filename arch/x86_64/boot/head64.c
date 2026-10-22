@@ -41,10 +41,11 @@ int start_kernel(struct boot_info *boot);
 void x86_64_start_kernel(struct boot_info *boot)
 {
 	setup_gdt();
-	setup_idt(); 
+	setup_idt();
 
 	/* Map the framebuffer */
 	boot->info.lfb_base = (u64)early_setup_framebuffer(&boot->info);
+	boot->rsdp = phys_to_virt((phys_addr_t)boot->rsdp);
 
 	init_fbcon(&boot->info);
 	sanitize_e820_table(&boot->mem);

@@ -77,6 +77,7 @@ start_64:
 	movq %rdi, %rsi
 	leaq boot_info_copy(%rip), %rdi
 	movq %rdi, %r12
+	movl $BOOT_INFO_SIZE, %ecx
 	rep movsb
 	
 	lgdt early_gdt_desc(%rip)
