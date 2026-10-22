@@ -3,165 +3,162 @@
 #include <asm/desc_defs.h>
 #include <emerald/init.h>
 
+.macro PMD_ENTS s, f, count
+	.set i, 0
+	.rept \count
+	.quad \s + (i << 21) + \f
+	.set i, i + 1
+	.endr
+.endm
+
 .section .head.data, "aw", @progbits
-
 .balign PT_SIZE
-/* init_pml4 is the kernel's permanent page tables */
-init_pml4:
-/* trampoline page tables */
-early_pml4:
-	.zero PT_SIZE
-early_pdpt:
-	.zero PT_SIZE
-early_pd_kernel:
-	.zero PT_SIZE
 
-early_pd_mmio:
-	.zero PT_SIZE
+.set level2_pgt_slot, level2_kernel_pgt + PTE_KERNEL
+.set level3_pgt_slot, level3_kernel_pgt + PTE_KERNEL
 
-/* early Global Descriptor Table (GDT) */
+.global init_top_pgt
+init_top_pgt:
+	.fill 511, 8, 0
+	.quad level3_pgt_slot
+
+.global early_top_pgt
+early_top_pgt:
+	.quad level3_pgt_slot
+	.fill 510, 8, 0
+	.quad level3_pgt_slot
+
+.global level3_kernel_pgt
+level3_kernel_pgt:
+	.fill L3_START_KERNEL, 8, 0
+	.quad level2_pgt_slot
+	.quad 0
+
+.global level2_kernel_pgt
+level2_kernel_pgt:
+	PMD_ENTS 0, PTE_KERNEL_BIG, 510
+	.quad 0
+	.quad 0
+
 .balign 8
 early_gdt_start:
-	.quad 0x0						/* 0x00: null */
-	.quad GDT_ENTRY(DESC_CODE64, 0, 0xFFFFF)		/* 0x08: kernel code */
-	.quad GDT_ENTRY(DESC_DATA64, 0, 0xFFFFF)		/* 0x10: kernel data */
-	.quad GDT_ENTRY(DESC_CODE64 | DESC_USER, 0, 0xFFFFF)	/* 0x18: user code */
-	.quad GDT_ENTRY(DESC_DATA64 | DESC_USER, 0, 0xFFFFF)	/* 0x20: user data */
+	.quad 0x0
+	.quad GDT_ENTRY(DESC_CODE64, 0, 0xFFFFF)
+	.quad GDT_ENTRY(DESC_DATA64, 0, 0xFFFFF)
+	.quad GDT_ENTRY(DESC_CODE64 | DESC_USER, 0, 0xFFFFF)
+	.quad GDT_ENTRY(DESC_DATA64 | DESC_USER, 0, 0xFFFFF)
 early_gdt_end:
 
 .balign 4
 early_gdt_desc:
-    	.word (early_gdt_end - early_gdt_start - 1)
-    	.quad early_gdt_start
+	.word (early_gdt_end - early_gdt_start - 1)
+	.quad early_gdt_start
+
+.balign 8
+boot_info_copy:
+	.fill BOOT_INFO_SIZE, 1, 0
 
 .section .text
 __HEAD
 .code64
 
 .extern x86_64_start_kernel
-.extern kernel_stack_top
 
 .global start_64
 .type start_64, @function
 start_64:
-    	cli
-    	cld     /* SysV requires the Direction flag to be clear on function entry */ 
+	cli
+	cld
 
-    	/* save the boot_info pointer passed from UEFI */
-    	movq %rdi, %r12
-
-.reload_gdt:
-    	lgdt early_gdt_desc(%rip)
-
-    	/* setup kernel data segments */
-    	movw $__KERNEL_DS, %ax
-    	movw %ax, %ds
-    	movw %ax, %es
-    	movw %ax, %ss
-    	movw %ax, %fs
-    	movw %ax, %gs
-
-    	/* reload code segment */
-    	pushq $__KERNEL_CS
-    	leaq .setup_pgt(%rip), %rax
-    	pushq %rax
-    	lretq
-
-.setup_pgt:
-    	/* setup initial page tables */
-    	leaq early_pdpt(%rip), %rax
-    	orq $PTE_KERNEL, %rax
-    	leaq early_pml4(%rip), %rbx
-    	movq %rax, (511 * PT_ENTRY_SIZE)(%rbx)     /* Store into early_pml4[511] for higher-half */
-
-    	movq %rax, 0(%rbx)  /* store into PML4[0] so CPU doesn't crash when we reload CR3 */
-
-    	/* link early_pdpt[510] and early_pdpt[0] to PD */
-    	leaq early_pd_kernel(%rip), %rax
-    	orq $PTE_KERNEL, %rax
-    	leaq early_pdpt(%rip), %rbx
-    	movq %rax, (510 * PT_ENTRY_SIZE)(%rbx)
-    	movq %rax, 0(%rbx)
-
-    	/* map kernel pages */
-    	leaq early_pd_kernel(%rip), %rdi
-    	movq $PTE_KERNEL_BIG, %rsi
-    	xorq %rdx, %rdx
-    	call map_pages
-
-    	/* PDPT index = (fb >> 30) & 0x1FF */
-    	movq BOOT_INFO_FB_BASE(%r12), %rdx
-    	movq %rdx, %rax
-    	shrq $30, %rax
-    	andl $0x1FF, %eax
-    	andq $-0x40000000, %rdx     /* round base down to 1 GiB for map_pages */
-
-
-    	/* map the framebuffer */
-    	leaq early_pd_mmio(%rip), %r9
-    	orq $PTE_KERNEL, %r9
-    	movq %r9, (%rbx, %rax, PT_ENTRY_SIZE)
-
-    	/* map mmio pages (currently framebuffer) */
-    	leaq early_pd_mmio(%rip), %rdi
-    	movq $PTE_MMIO, %rsi
-    	call map_pages
-
-    	leaq early_pml4(%rip), %rax
-    	movq %rax, %cr3
-    	jmp virt_start_64
-
-/* 
- * map pages into a Page Directory
- * %rdi - effective address of a Page Directory
- * %rsi - flags
- * %rdx - physical address accumulator
- *
- * Clobbers: %rcx, %rdx, %r8
- */
-.type map_pages, @function
-map_pages:
-	xor %rcx, %rcx  /* index counter */
-.map_page:
-    	mov %rdx, %r8
-    	orq %rsi, %r8
-    	movq %r8, (%rdi, %rcx, PT_ENTRY_SIZE)  /* pd[%rcx] = %r8 */
-    	addq $HPAGE_SIZE, %rdx
-    	incq %rcx
-    	cmpq $PT_ENTRIES, %rcx
-    	jne .map_page
-    	ret
-
-virt_start_64:
 	/* 
-	 * we're now running in virtual address space 
-	 * we no longer need the identity mappings in early_pml4
+	 * copy boot_info out of stub memory while the firmware's
+	 * identity map is still in CR3
 	 */
-	leaq early_pdpt(%rip), %rax
-    	orq $PTE_KERNEL, %rax
-    	leaq init_pml4(%rip), %rbx
-    	movq %rax, 0(%rbx)
+	movq %rdi, %rsi
+	leaq boot_info_copy(%rip), %rdi
+	movq %rdi, %r12
+	rep movsb
+	
+	lgdt early_gdt_desc(%rip)
 
-	/* swap CR3 to init_pml4 */
-	movq %rbx, %cr3
+	movw $__KERNEL_DS, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	movw %ax, %ss
+	movw %ax, %fs
+	movw %ax, %gs
 
-    	/* Clear BSS */
-    	xorl %eax, %eax
-    	leaq __bss_start(%rip), %rdi
-    	leaq __bss_stop(%rip), %rcx
-    	subq %rdi, %rcx
-    	shrq $3, %rcx
-    	rep stosq
+	pushq $__KERNEL_CS
+	leaq fix_pgt(%rip), %rax
+	pushq %rax
+	lretq
 
-    	/* Pivot the stack pointer into virtual address space */
-    	movabsq $kernel_stack_top, %rsp
-    	xor %rbp, %rbp
+fix_pgt:
+	leaq __kernel_start(%rip), %rbp
 
-    	/* restore the boot_info pointer */
-    	movq %r12, %rdi
+	/* Map Level 3 identity slot */
+	movq %rbp, %rax
+	shrq $PDPT_SHIFT, %rax
+	andq $0x1ff, %rax
 
-/* entry point: x86_64_start_kernel */
+	leaq level3_kernel_pgt(%rip), %rbx
+	leaq level2_kernel_pgt(%rip), %rdx
+	orq  $PTE_KERNEL, %rdx
+	movq %rdx, (%rbx, %rax, 8)
+
+	/* Map Level 4 identity slot */
+	movq %rbp, %rax
+	shrq $PML4_SHIFT, %rax
+	andq $0x1ff, %rax
+
+	leaq early_top_pgt(%rip), %rbx
+	leaq level3_kernel_pgt(%rip), %rdx
+	orq  $PTE_KERNEL, %rdx
+	movq %rdx, (%rbx, %rax, 8)
+
+	/* Check if we were relocated */
+	subq $__kernel_start, %rbp
+	testq %rbp, %rbp
+	jz load_early_pgt
+
+	/* fixup patch tables */
+	addq %rbp, init_top_pgt + 0(%rip)
+	addq %rbp, init_top_pgt + (511 * 8)(%rip)
+
+	addq %rbp, early_top_pgt + 0(%rip);
+	addq %rbp, early_top_pgt + (511 * 8)(%rip)
+
+	addq %rbp, level3_kernel_pgt + (L3_START_KERNEL * 8)(%rip)
+
+load_early_pgt:
+	leaq early_top_pgt(%rip), %rax
+	movq %rax, %cr3
+	movabsq $swap_pgt, %rax
+	jmp *%rax
+
+.section .text
+swap_pgt:
+	/* Load physical address of init_top_pgt into CR3 */
+	movabsq $init_top_pgt, %rax
+	addq %rbp, %rax
+	movq %rax, %cr3
+
+secondary_start_64:
+	xorl %eax, %eax
+	leaq __bss_start(%rip), %rdi
+	leaq __bss_stop(%rip), %rcx
+	subq %rdi, %rcx
+	shrq $3, %rcx
+	rep stosq
+
+	movabsq $kernel_stack_top, %rsp
+	xor %rbp, %rbp
+
+	/* hand the kernel a higher-half alias of boot_info_copy */
+	movabsq $KERNEL_VMA, %rdi
+	addq %r12, %rdi
+
 enter_kernel:
-    	movabsq $x86_64_start_kernel, %rax
-    	call *%rax
-    	ud2
+	movabsq $x86_64_start_kernel, %rax
+	call *%rax
+	ud2

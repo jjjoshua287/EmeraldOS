@@ -39,6 +39,4 @@ struct boot_info {
 	struct e820_table mem;
 };
 
-extern struct boot_info boot;
-
 #endif /* EMERALD_RUNTIME_H */

@@ -401,7 +401,7 @@ static phys_addr_t memblock_find_free_area(phys_addr_t size, phys_addr_t align,
 {
 	int idx;
 	struct memblock_region *rgn;
-	struct memblock_region *rsvd_rgn;
+	struct memblock_region *rsvd_rgn = &memblock.reserved.regions[0];
 	struct memblock_type *mem = &memblock.memory;
 	struct memblock_type *rsvd = &memblock.reserved;
 

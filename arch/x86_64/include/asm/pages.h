@@ -3,7 +3,6 @@
 
 #define PT_SIZE         4096
 #define PT_ENTRIES      512
-#define PT_ENTRY_SIZE   8
 
 /* Page Table Entry (PTE) Bits */
 #define PTE_P   1       /* Present Bit */
@@ -21,6 +20,14 @@
 #define PTE_KERNEL_BIG (PTE_KERNEL | PTE_PS)
 #define PTE_MMIO (PTE_P | PTE_RW | PTE_PWT | PTE_PCD | PTE_A | PTE_PS)
 
+#define L3_START_KERNEL 510
+
+#define PML4_SHIFT 	39
+#define PDPT_SHIFT 	30
+#define PD_SHIFT	21
+
+#define PMD_SIZE 8
+
 #define KERNEL_LMA 	0x0000000000100000
 #define KERNEL_VMA 	0xffffffff80000000
 #define PAGE_OFFSET 	0xffff888000000000
@@ -34,7 +41,7 @@
 #ifndef __ASSEMBLER__
 #include <emerald/types.h>
 
-#define __va(x) 	((void *)(unsigned long)(x) + PAGE_OFFSET)
+#define __va(x) 	((void *)((unsigned long)(x) + PAGE_OFFSET))
 #define __pa(x) 	((unsigned long)(x) - PAGE_OFFSET)
 #define __pa_symbol(x)	((unsigned long)(x) - KERNEL_VMA + KERNEL_LMA)
 
