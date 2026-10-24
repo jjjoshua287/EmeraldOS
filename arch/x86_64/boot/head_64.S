@@ -32,13 +32,17 @@ early_top_pgt:
 level3_kernel_pgt:
 	.fill L3_START_KERNEL, 8, 0
 	.quad level2_pgt_slot
-	.quad 0
+	.quad level2_fb_pgt + PTE_KERNEL
 
 .global level2_kernel_pgt
 level2_kernel_pgt:
 	PMD_ENTS 0, PTE_KERNEL_BIG, 510
 	.quad 0
 	.quad 0
+
+.global level2_fb_pgt
+level2_fb_pgt:
+	.fill 512, 8, 0
 
 .balign 8
 early_gdt_start:

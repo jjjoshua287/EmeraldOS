@@ -59,4 +59,4 @@ SECTIONS
 }
 
 /* high-half aliases of low-linked head data, for use from C */
-level2_kernel_pgt_va = level2_kernel_pgt + KERNEL_VMA;
+level2_fb_pgt_va = level2_fb_pgt + KERNEL_VMA;
