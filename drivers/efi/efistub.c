@@ -59,6 +59,16 @@ static efi_status_t setup_graphics_output_protocol(efi_system_table_t *SystemTab
 	return status;
 }
 
+struct efi_memory_attribute_protocol *mattr;
+
+static efi_status_t locate_mattr(efi_boot_services_t *gBS)
+{
+	mattr = NULL;
+	efi_guid_t guid = EFI_MEMORY_ATTRIBUTE_PROTOCOL_GUID;
+	efi_status_t status = gBS->LocateProtocol(&guid, NULL, (void **)&mattr);
+	return status;
+}
+
 struct hw_memory_map hw_mem;
 
 static efi_status_t get_memory_map(efi_boot_services_t *gBS)
@@ -100,7 +110,7 @@ struct boot_info boot;
 typedef void (*kernel_entry_t)(struct boot_info *boot) __attribute__((sysv_abi));
 
 /* Function prototypes from efistub_helpers.c */
-void *load_kernel(struct efi_boot_services *gBS);
+void *load_kernel(struct efi_boot_services *gBS, struct efi_memory_attribute_protocol *mattr);
 void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out);
 int efi_utoa(unsigned long long num, efi_char16_t *out_buf, int base);
 
@@ -139,7 +149,8 @@ efi_status_t efi_main(efi_handle_t ImageHandle, efi_system_table_t *SystemTable)
 
 	print_fb_info(SystemTable);
 
-	kernel_entry_t entry = (kernel_entry_t)load_kernel(SystemTable->BootServices);
+	status = locate_mattr(SystemTable->BootServices);
+	kernel_entry_t entry = (kernel_entry_t)load_kernel(SystemTable->BootServices, mattr);
 
 	if (likely(entry != NULL)) {
 		SystemTable->ConOut->OutputString(SystemTable->ConOut, u"Loaded Kernel\r\n");

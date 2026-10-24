@@ -2,6 +2,7 @@
 
 #include <emerald/efi.h>
 #include <emerald/elf.h>
+#include <emerald/align.h>
 #include <emerald/string.h>
 #include <emerald/runtime.h>
 #include <emerald/compiler.h>
@@ -38,21 +39,41 @@ extern const unsigned char kernel_elf_start[];
 /* NOTE: This assumes the kernel is compiled as a 64-bit ELF */
 
 /* Load a program into memory an ELF's Program Header Table */
-static efi_status_t load_pht(efi_boot_services_t *gBS, Elf64_Off phoff, 
-			Elf64_Half ph_entry_size, Elf64_Half pht_num_entries)
+static efi_status_t load_pht(efi_boot_services_t *gBS, 
+			     struct efi_memory_attribute_protocol *mattr,
+			     struct elf64_hdr *hdr)
 {
+	Elf64_Off phoff = hdr->e_phoff;
+	Elf64_Half ph_entry_size = hdr->e_phentsize;
+	Elf64_Half pht_num_entries = hdr->e_phnum;
+
 	for (Elf64_Half i = 0; i < pht_num_entries; i++) {
 		struct elf64_phdr *phdr = (struct elf64_phdr *)(kernel_elf_start + phoff + i * ph_entry_size);
 		if (phdr->p_type != PT_LOAD)
 			continue;
 
-		efi_phys_addr_t addr = phdr->p_paddr;
+		efi_phys_addr_t base = ALIGN(phdr->p_paddr, EFI_PAGE_SIZE);
+		u64 pages = EFI_SIZE_TO_PAGES(phdr->p_memsz + (phdr->p_paddr - base));
+
+		if (phdr->p_memsz == 0)
+			continue;
+
 		efi_status_t status = gBS->AllocatePages(
 			AllocateAddress, EfiLoaderCode,
-			EFI_SIZE_TO_PAGES(phdr->p_memsz), &addr);
+			pages, &base);
+
 		if (EFI_ERROR(status))
 			return status;
 
+		/* Clear RO before writing, XP before jumping */
+		if (mattr) {
+			status = mattr->ClearMemoryAttributes(
+				mattr, base, pages * EFI_PAGE_SIZE, 
+				EFI_MEMORY_XP | EFI_MEMORY_RO);
+			if (EFI_ERROR(status))
+				return status;
+		}
+		
 		memcpy((void *)phdr->p_paddr, kernel_elf_start + phdr->p_offset, phdr->p_filesz);
 		memset((void *)phdr->p_paddr + phdr->p_filesz, 0, phdr->p_memsz - phdr->p_filesz);
 	}
@@ -69,11 +90,11 @@ static bool elf_valid(struct elf64_hdr *hdr)
 	return true;
 }
 
-void *load_kernel(struct efi_boot_services *gBS)
+void *load_kernel(struct efi_boot_services *gBS, struct efi_memory_attribute_protocol *mattr)
 {
 	struct elf64_hdr *hdr = (struct elf64_hdr *)kernel_elf_start;
 	if (likely(elf_valid(hdr))) {
-		if (EFI_ERROR(load_pht(gBS, hdr->e_phoff, hdr->e_phentsize, hdr->e_phnum)))
+		if (EFI_ERROR(load_pht(gBS, mattr, hdr)))
 			return NULL;
 		return (void *)hdr->e_entry;
 	}
