@@ -32,6 +32,8 @@ int kernel_main(struct boot_info *boot)
 int start_kernel(struct boot_info *boot)
 {
 	setup_arch(boot);
+	printk("e820 entries: %u\n", boot->mem.nr_entries);
+
 	kernel_main(boot);
 	return 0;
 }

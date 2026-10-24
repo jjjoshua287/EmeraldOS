@@ -36,6 +36,8 @@
 #define PAGE_SIZE	(1UL << PAGE_SHIFT)	/* 4 KiB */
 #define HPAGE_SIZE 	0x200000    		/* 2 MiB */
 
+#define EARLY_MAP_END 	(4UL << 30) 		/* Early direct map ends at 4 GiB */
+
 #ifndef __ASSEMBLER__
 #include <emerald/types.h>
 

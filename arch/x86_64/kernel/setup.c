@@ -31,6 +31,7 @@ void setup_arch(struct boot_info *boot)
 {
 	do_early_reserves(boot);
 	e820_memblock_setup(&boot->mem);
+	memblock_set_curr_limit(EARLY_MAP_END);
 	do_alloc_test();
 
 	/* BUG: This function is commented out to avoid a #PF. it will resolved once I get to doing that. */

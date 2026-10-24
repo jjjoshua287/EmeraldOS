@@ -109,11 +109,8 @@ void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out)
 	memset(out, 0, sizeof(struct e820_table));
 	
 	u64 uefi_entries = mmap->size / mmap->descriptorSize;
-	u64 num_entries = (uefi_entries < E820_MAX_ENTRIES) ? uefi_entries : E820_MAX_ENTRIES;
-
 	u8 *map = (u8 *)mmap->memoryMap;
-	for (u64 i = 0; i < num_entries; i++) {
-		struct e820_entry *entry = &out->entries[i];
+	for (u64 i = 0; i < uefi_entries ; i++) {
 		efi_memory_descriptor *desc = (efi_memory_descriptor *)(map + i * mmap->descriptorSize);
 		enum e820_type type;
 		u64 size = (u64)desc->NumberOfPages * EFI_PAGE_SIZE;
