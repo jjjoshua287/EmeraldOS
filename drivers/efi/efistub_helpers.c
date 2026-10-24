@@ -48,7 +48,7 @@ static efi_status_t load_pht(efi_boot_services_t *gBS, Elf64_Off phoff,
 
 		efi_phys_addr_t addr = phdr->p_paddr;
 		efi_status_t status = gBS->AllocatePages(
-			AllocateAddress, EfiLoaderData,
+			AllocateAddress, EfiLoaderCode,
 			EFI_SIZE_TO_PAGES(phdr->p_memsz), &addr);
 		if (EFI_ERROR(status))
 			return status;

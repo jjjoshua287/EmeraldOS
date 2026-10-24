@@ -57,6 +57,8 @@ static_assert(offsetof(efi_memory_descriptor, PhysicalStart) == 8,
 
 #define EFI_MEMORY_DESCRIPTOR_VERSION 1
 
+#define EFI_MEMORY_XP 0x0000000000004000ULL
+#define EFI_MEMORY_RO 0x0000000000020000ULL
 #define EFI_MEMORY_WB 8ULL
 
 #define EFI_PAGE_SHIFT  12
@@ -159,6 +161,10 @@ typedef struct {
     { 0x9042a9de, 0x23dc, 0x4a38, \
 	{ 0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a } }
 
+#define EFI_MEMORY_ATTRIBUTE_PROTOCOL_GUID \
+  { 0xf4560cf6, 0x40ec, 0x4b4a, \
+	{ 0xa1, 0x92, 0xbf, 0x1d, 0x57, 0xd0, 0xb1, 0x89 } }
+
 /*
  * ACPI Table GUID definitions
 */
@@ -186,6 +192,27 @@ typedef struct {
 	u16 ScanCode;
 	efi_char16_t UnicodeChar;
 } efi_input_key_t;
+
+struct efi_memory_attribute_protocol {
+	efi_status_t (*GetMemoryAttributes)(
+		struct efi_memory_attribute_protocol *This,
+		efi_phys_addr_t BaseAddress,
+		u64 Length,
+		u64 *Attributes
+	);
+	efi_status_t (*SetMemoryAttributes)(
+		struct efi_memory_attribute_protocol *This,
+		efi_phys_addr_t BaseAddress,
+		u64 Length,
+		u64 Attributes
+	);
+	efi_status_t (*ClearMemoryAttributes)(
+		struct efi_memory_attribute_protocol *This,
+		efi_phys_addr_t BaseAddress,
+		u64 Length,
+		u64 Attributes
+	);
+};
 
 struct efi_simple_text_input_protocol {
 	void *Reset;
