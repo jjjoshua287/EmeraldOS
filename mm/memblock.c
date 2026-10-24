@@ -27,6 +27,7 @@ struct memblock memblock = {
 };
 
 bool memblock_debug = true;
+bool memblock_can_resize = false;
 
 static inline const char *memblock_type_name(struct memblock_type *type)
 {
@@ -484,6 +485,16 @@ void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
 	if (memblock_reserve_kern(base, size) < 0)
 		return NULL;
 	return phys_to_virt(base);
+}
+
+void memblock_phys_free(phys_addr_t base, phys_addr_t size)
+{
+	memblock_remove_range(&memblock.reserved, base, size);
+}
+
+void memblock_allow_resize(void)
+{
+	memblock_can_resize = true;
 }
 
 static void memblock_dump(struct memblock_type *type)

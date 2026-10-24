@@ -1,6 +1,8 @@
 #ifndef EMERALD_MEMBLOCK_H
 #define EMERALD_MEMBLOCK_H
 
+#include <asm/pages.h>
+
 #include <emerald/types.h>
 #include <emerald/limits.h>
 #include <emerald/compiler.h>
@@ -116,6 +118,8 @@ static __always_inline int memblock_reserve_kern(phys_addr_t base, phys_addr_t s
 void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
 			  phys_addr_t start, phys_addr_t end);
 
+void memblock_phys_free(phys_addr_t base, phys_addr_t size);
+
 /**
  * memblock_alloc - allocate an contiguous block of memory during early boot
  * @size: how many bytes to allocate
@@ -129,10 +133,22 @@ static __always_inline void *memblock_alloc(phys_addr_t size, phys_addr_t align)
 	return memblock_phys_alloc(size, align, 0, MEMBLOCK_ALLOC_ACCESSIBLE);
 }
 
+/**
+ * memblock_free - free a contigous block of memory during early boot
+ * @base: the kernel virtual address of the memory to be freed
+ * @size: size of the block of memory
+ */
+static __always_inline void memblock_free(void *base, phys_addr_t size)
+{
+	memblock_phys_free(virt_to_phys(base), size);
+}
+
 static inline void memblock_set_curr_limit(phys_addr_t limit)
 {
 	memblock.curr_limit = limit;
 }
+
+void memblock_allow_resize(void);
 
 void memblock_dump_all(void);
 void test_memblock_visual(void);
