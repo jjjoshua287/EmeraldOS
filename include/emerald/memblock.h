@@ -2,6 +2,7 @@
 #define EMERALD_MEMBLOCK_H
 
 #include <emerald/types.h>
+#include <emerald/limits.h>
 #include <emerald/compiler.h>
 
 /* the initial number of memblock regions, can be increased dynamically */
@@ -136,15 +137,45 @@ static inline void memblock_set_curr_limit(phys_addr_t limit)
 void memblock_dump_all(void);
 void test_memblock_visual(void);
 
+void __next_mem_range(u64 *idx, struct memblock_type *type_a, 
+		      struct memblock_type *type_b, phys_addr_t *out_start,
+		      phys_addr_t *out_end);
+
 /**
  * for_each_memblock_type - iterator for memblock_type->regions[]
  * @i: loop variable, set to 0
- * @memblock_type: pointer to memblock_type to iterate over
- * @rgn: pointer to memblock_region
+ * @memblock_type: ptr to memblock_type to iterate over
+ * @rgn: ptr to memblock_region
  */
 #define for_each_memblock_type(i, memblock_type, rgn)		\
 	for ((i) = 0, (rgn) = &memblock_type->regions[0];	\
 		(i) < memblock_type->count;			\
 		(i)++, (rgn) = &memblock_type->regions[(i)])
 
-#endif
+/**
+ * __for_each_mem_range - iterate through memblock regions from type_a
+ * that aren't part of type_b.
+ * @i: u64 loop variable
+ * @type_a: ptr to memblock type to iterate over
+ * @type_b: ptr to memblock_type to exclude
+ * @p_start: ptr to physical start address of the range
+ * @p_end: ptr to physical end address of the range
+ */
+#define __for_each_mem_range(i, type_a, type_b, p_start, p_end)	\
+	for (i = 0, __next_mem_range(&i, type_a, type_b, p_start, p_end); \
+		i != (u64)ULLONG_MAX;	\
+		__next_mem_range(&i, type_a, type_b, p_start, p_end))
+
+/**
+ * for_each_free_mem_range - iterator for free memblock areas
+ * @i: u64 loop variable
+ * @p_start: ptr to physical start address of the range
+ * @p_end: ptr to physical end address of the range
+ * 
+ * iterates over free (memory && !reserved) areas of memory.
+ */
+#define for_each_free_mem_range(i, p_start, p_end)	\
+	__for_each_mem_range((i), &memblock.memory, &memblock.reserved,	\
+			     (p_start), (p_end))
+
+#endif 	/* EMERALD_MEMBLOCK_H */

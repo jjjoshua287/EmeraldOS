@@ -384,6 +384,63 @@ int memblock_remove(phys_addr_t base, phys_addr_t size)
 }
 
 /**
+ * __next_mem_range - get the next gap in between two memory types
+ * @idx: ptr to u64 loop variable
+ * @type_a: ptr to the first memory type
+ * @type_b: ptr to the second memory type
+ * @out_start: ptr to the physical address where the gap starts
+ * @out_end: ptr to the physical address where the gap ends
+ * 
+ * This serves as a next function for for_each_free_range() style macros.
+ * Find the next gap starting from *@idx, fill in the parameters, and 
+ * update *@idx for the next iteration.
+ * 
+ * The lower 32 bits of *@idx contains the index into type_a and
+ * the upper 32 bits of *@idx contains the index into type_b.
+ */
+void __next_mem_range(u64 *idx, struct memblock_type *type_a, 
+		      struct memblock_type *type_b, phys_addr_t *out_start,
+		      phys_addr_t *out_end)
+{
+	int idx_a = *idx & 0xFFFFFFFF;
+	int idx_b = *idx >> 32;
+
+	for (; idx_a < type_a->count; idx_a++) {
+		struct memblock_region *rgn_a = &type_a->regions[idx_a];
+		phys_addr_t start_a = rgn_a->base;
+		phys_addr_t end_a = rgn_a->base + rgn_a->size;
+
+		for (; idx_b < type_b->count + 1; idx_b++) {
+			struct memblock_region *rgn_b = &type_b->regions[idx_b];
+			phys_addr_t gap_start = (idx_b) ? 
+						rgn_b[-1].base + rgn_b[-1].size : 0;
+			phys_addr_t gap_end = (idx_b < type_b->count) ?
+					      rgn_b->base : PHYS_ADDR_MAX;
+
+			/* idx_b advanced past idx_a. break to increment idx_a */
+			if (gap_start >= end_a)
+				break;
+			if (start_a >= gap_end)
+				continue;
+			
+			/* the ranges intersect, we're done */
+			*out_start = max(start_a, gap_start);
+			*out_end = min(end_a, gap_end);
+
+			/* advance the region that ends first for next iter. */
+			if (end_a <= gap_end)
+				idx_a++;
+			else
+				idx_b++;
+			*idx = (u32)idx_a | (u64)idx_b << 32;
+			return;
+		}
+	}
+	/* signal end of iteration */
+	*idx = ULLONG_MAX;
+}
+
+/**
  * memblock_find_free_area - find a contiguous area of free memory
  * @size: size of the area
  * @align: alignment boundary of the area
@@ -461,7 +518,7 @@ static void memblock_dump(struct memblock_type *type)
 
 static void __memblock_dump_all(void)
 {
-	printk("Memblock Configuration:\n");
+	printk("\nMemblock Configuration:\n");
 	printk("Current allocation limit: 0x%016llx\n", memblock.curr_limit);
 	printk(" memory size = %016llx    reserved memory size: %016llx\n",
 		memblock.memory.total_size, memblock.reserved.total_size);
