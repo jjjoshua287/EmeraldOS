@@ -24,7 +24,7 @@ static void do_early_reserves(struct boot_info *boot)
 static inline void do_alloc_test()
 {
 	void *alloc = memblock_alloc(0xf, PAGE_SIZE);
-	printk("Allocated %d bytes at %p\n", 0xf, alloc);
+	printk("Allocated %d bytes at %p\n\n", 0xf, alloc);
 }
 
 void setup_arch(struct boot_info *boot) 

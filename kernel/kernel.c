@@ -32,11 +32,6 @@ int kernel_main(struct boot_info *boot)
 int start_kernel(struct boot_info *boot)
 {
 	setup_arch(boot);
-	
-	printk("\nFramebuffer region: [0x%016llx-0x%016llx]\n", 
-		boot->info.lfb_base, boot->info.lfb_base + boot->info.lfb_size);
-	printk("RSDP addr: %#p\n", boot->rsdp);
-	
 	kernel_main(boot);
 	return 0;
 }
