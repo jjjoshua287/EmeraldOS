@@ -41,7 +41,7 @@ static inline const char *memblock_type_name(struct memblock_type *type)
 /* adjust *@size so that @base + *@size doesn't overflow. returns the new size */
 static inline phys_addr_t memblock_cap_size(phys_addr_t base, phys_addr_t *size)
 {
-	return *size = min(*size, (phys_addr_t)ULLONG_MAX - base);
+	return *size = min(*size, PHYS_ADDR_MAX - base);
 }
 
 /**
@@ -456,33 +456,19 @@ void __next_mem_range(u64 *idx, struct memblock_type *type_a,
 static phys_addr_t memblock_find_free_area(phys_addr_t size, phys_addr_t align,
 				   phys_addr_t start, phys_addr_t end)
 {
-	int idx;
-	struct memblock_region *rgn;
-	struct memblock_region *rsvd_rgn = &memblock.reserved.regions[0];
-	struct memblock_type *mem = &memblock.memory;
-	struct memblock_type *rsvd = &memblock.reserved;
+	u64 idx;
+	phys_addr_t range_start, range_end;
 
-	for_each_memblock_type(idx, mem, rgn) {
-		if (idx + 1 >= rsvd->count)
-			rsvd_rgn = &rsvd->regions[idx];
-
-		phys_addr_t rbase = rgn->base;
-		phys_addr_t rend = rgn->base + rgn->size;
-
-		/* we can't use this region if it's reserved */
-		if (rbase >= rsvd_rgn->base && rend <= (rsvd_rgn->base + rsvd_rgn->size))
+	for_each_free_mem_range(idx, &range_start, &range_end) {
+		if (range_start < start)
 			continue;
-
-		if (rbase >= end)
+		if (range_end > end)
 			break;
-		if (rend <= start)
-			continue;
-		
-		if (rgn->size >= size && IS_ALIGNED(rbase, align))
-			return rbase;
-	}
 
-	/* we failed to find an area that meets the requirements */
+		phys_addr_t base = ALIGN(range_start, align);
+		if (base + size <= range_end)
+			return base;
+	}
 	return 0;
 }
 
