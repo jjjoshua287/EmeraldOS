@@ -4,8 +4,10 @@
 #include <emerald/minmax.h>
 #include <emerald/align.h>
 #include <emerald/string.h>
+#include <emerald/panic.h>
 #include <emerald/printk.h>
 #include <emerald/memblock.h>
+#include <emerald/mm.h>
 
 #include <asm/bug.h>
 #include <asm/pages.h>
@@ -39,26 +41,155 @@ static inline const char *memblock_type_name(struct memblock_type *type)
 		return "unknown";
 }
 
-/* adjust *@size so that @base + *@size doesn't overflow. returns the new size */
-static inline phys_addr_t memblock_cap_size(phys_addr_t base, phys_addr_t *size)
+/**
+ * __next_mem_range - get the next gap in between two memory types
+ * @idx: ptr to u64 loop variable
+ * @type_a: ptr to the first memory type
+ * @type_b: ptr to the second memory type
+ * @out_start: ptr to the physical address where the gap starts
+ * @out_end: ptr to the physical address where the gap ends
+ * 
+ * This serves as a next function for for_each_free_range() style macros.
+ * Find the next gap starting from *@idx, fill in the parameters, and 
+ * update *@idx for the next iteration.
+ * 
+ * The lower 32 bits of *@idx contains the index into type_a and
+ * the upper 32 bits of *@idx contains the index into type_b.
+ */
+void __next_mem_range(u64 *idx, struct memblock_type *type_a, 
+		      struct memblock_type *type_b, phys_addr_t *out_start,
+		      phys_addr_t *out_end)
 {
-	return *size = min(*size, PHYS_ADDR_MAX - base);
+	int idx_a = *idx & 0xFFFFFFFF;
+	int idx_b = *idx >> 32;
+
+	for (; idx_a < type_a->count; idx_a++) {
+		struct memblock_region *rgn_a = &type_a->regions[idx_a];
+		phys_addr_t start_a = rgn_a->base;
+		phys_addr_t end_a = rgn_a->base + rgn_a->size;
+
+		for (; idx_b < type_b->count + 1; idx_b++) {
+			struct memblock_region *rgn_b = &type_b->regions[idx_b];
+			phys_addr_t gap_start = (idx_b) ? 
+						rgn_b[-1].base + rgn_b[-1].size : 0;
+			phys_addr_t gap_end = (idx_b < type_b->count) ?
+					      rgn_b->base : PHYS_ADDR_MAX;
+
+			/* idx_b advanced past idx_a. break to increment idx_a */
+			if (gap_start >= end_a)
+				break;
+			if (start_a >= gap_end)
+				continue;
+			
+			/* the ranges intersect, we're done */
+			*out_start = max(start_a, gap_start);
+			*out_end = min(end_a, gap_end);
+
+			/* advance the region that ends first for next iter. */
+			if (end_a <= gap_end)
+				idx_a++;
+			else
+				idx_b++;
+			*idx = (u32)idx_a | (u64)idx_b << 32;
+			return;
+		}
+	}
+	/* signal end of iteration */
+	*idx = ULLONG_MAX;
+}
+
+/**
+ * memblock_find_free_area - find a contiguous area of free memory
+ * @size: size of the area
+ * @align: alignment boundary of the area
+ * @start: start address
+ * @end: end address
+ * 
+ * finds a contiguous area of memory in the 'memory' type that isn't reserved
+ * and is aligned to @align within [start, end).
+ * 
+ * Returns:
+ * A physical address of the found area on success, 0 on failure.
+ */
+static phys_addr_t memblock_find_free_area(phys_addr_t size, phys_addr_t align,
+				   phys_addr_t start, phys_addr_t end)
+{
+	u64 idx;
+	phys_addr_t range_start, range_end;
+
+	for_each_free_mem_range(idx, &range_start, &range_end) {
+		if (range_start < start)
+			continue;
+		if (range_end > end)
+			break;
+
+		phys_addr_t base = ALIGN(range_start, align);
+		if (base + size <= range_end)
+			return base;
+	}
+	return 0;
 }
 
 /**
  * memblock_double_array - double the size of a memblock_region array
  * @type: memblock_type of the regions array being doubled
- * @start_addr: start of memory range to avoid overlap with
- * @size: size of memory range to avoid overlap with
+ * @new_area_start: start of memory range to avoid overlap with
+ * @new_area_size: size of memory range to avoid overlap with
  * 
  * Returns:
  * 0 on success, -errno on failure
  */
 static int memblock_double_array(struct memblock_type *type, 
-				 phys_addr_t start_addr,
-				 phys_addr_t size)
+				 phys_addr_t new_area_start,
+				 phys_addr_t new_area_size)
 {
-	return -ENOSYS; 	/* Not implemented yet */
+	/* this function should only be called if we can resize */
+	if (!memblock_can_resize)
+		panic("memblock: attempted to resize array!", NULL);
+	
+	/* calculate doubled size */
+	phys_addr_t old_size = type->max * sizeof(struct memblock_region);
+	phys_addr_t new_size = old_size << 1;
+
+	/* align each on a page boundary so they can be completely freed later */
+	phys_addr_t old_alloc_size = PAGE_ALIGN(old_size);
+	phys_addr_t new_alloc_size = PAGE_ALIGN(new_size);
+
+	/* only exclude the range if trying to double reserved.regions */
+	if (type != &memblock.reserved)
+		new_area_start = new_area_size = 0;
+	phys_addr_t area = memblock_find_free_area(new_alloc_size, PAGE_SIZE, 
+						   new_area_start + new_area_size,
+						   memblock.curr_limit);
+	
+	if (!area && new_area_size)
+		area = memblock_find_free_area(new_alloc_size, PAGE_SIZE, 0, 
+					       min(new_area_start, memblock.curr_limit));
+	
+	if (!area) {
+		printk("memblock: failed to double %s array from %ld to %ld entries!\n",
+			type->name, type->max, type->max << 1);
+		return -ENOMEM;
+	} else {
+		memblock_dbg("memblock: successfully doubled %s array from %ld to %ld entries\n",
+			      type->name, type->max, type->max << 1);
+	}
+
+	/* we've found space for the new array */
+	struct memblock_region *old_array = type->regions;
+	struct memblock_region *new_array = __va(area);
+
+	bool is_static = (type->max == MEMBLOCK_INIT_REGIONS);
+	
+	memcpy(new_array, type->regions, old_size);
+	memset(new_array + type->max, 0, old_size);
+	type->regions = new_array;
+	type->max <<= 1;
+
+	/* free the old array. it's unnecessary if it's the static one */
+	if (!is_static)
+		memblock_free(old_array, old_alloc_size);
+	return memblock_reserve_kern(area, new_alloc_size);
 }
 
 /**
@@ -121,6 +252,12 @@ static void memblock_insert_region(struct memblock_type *type, int idx, phys_add
 
 	type->count++;
 	type->total_size += size;
+}
+
+/* adjust *@size so that @base + *@size doesn't overflow. returns the new size */
+static inline phys_addr_t memblock_cap_size(phys_addr_t base, phys_addr_t *size)
+{
+	return *size = min(*size, PHYS_ADDR_MAX - base);
 }
 
 /**
@@ -382,95 +519,6 @@ int memblock_remove(phys_addr_t base, phys_addr_t size)
 	memblock_dbg("memblock_remove: [0x%016llx-0x%016llx]\n", base, end);
 
 	return memblock_remove_range(type, base, size);
-}
-
-/**
- * __next_mem_range - get the next gap in between two memory types
- * @idx: ptr to u64 loop variable
- * @type_a: ptr to the first memory type
- * @type_b: ptr to the second memory type
- * @out_start: ptr to the physical address where the gap starts
- * @out_end: ptr to the physical address where the gap ends
- * 
- * This serves as a next function for for_each_free_range() style macros.
- * Find the next gap starting from *@idx, fill in the parameters, and 
- * update *@idx for the next iteration.
- * 
- * The lower 32 bits of *@idx contains the index into type_a and
- * the upper 32 bits of *@idx contains the index into type_b.
- */
-void __next_mem_range(u64 *idx, struct memblock_type *type_a, 
-		      struct memblock_type *type_b, phys_addr_t *out_start,
-		      phys_addr_t *out_end)
-{
-	int idx_a = *idx & 0xFFFFFFFF;
-	int idx_b = *idx >> 32;
-
-	for (; idx_a < type_a->count; idx_a++) {
-		struct memblock_region *rgn_a = &type_a->regions[idx_a];
-		phys_addr_t start_a = rgn_a->base;
-		phys_addr_t end_a = rgn_a->base + rgn_a->size;
-
-		for (; idx_b < type_b->count + 1; idx_b++) {
-			struct memblock_region *rgn_b = &type_b->regions[idx_b];
-			phys_addr_t gap_start = (idx_b) ? 
-						rgn_b[-1].base + rgn_b[-1].size : 0;
-			phys_addr_t gap_end = (idx_b < type_b->count) ?
-					      rgn_b->base : PHYS_ADDR_MAX;
-
-			/* idx_b advanced past idx_a. break to increment idx_a */
-			if (gap_start >= end_a)
-				break;
-			if (start_a >= gap_end)
-				continue;
-			
-			/* the ranges intersect, we're done */
-			*out_start = max(start_a, gap_start);
-			*out_end = min(end_a, gap_end);
-
-			/* advance the region that ends first for next iter. */
-			if (end_a <= gap_end)
-				idx_a++;
-			else
-				idx_b++;
-			*idx = (u32)idx_a | (u64)idx_b << 32;
-			return;
-		}
-	}
-	/* signal end of iteration */
-	*idx = ULLONG_MAX;
-}
-
-/**
- * memblock_find_free_area - find a contiguous area of free memory
- * @size: size of the area
- * @align: alignment boundary of the area
- * @start: start address
- * @end: end address
- * 
- * finds a contiguous area of memory in the 'memory' type that isn't reserved
- * and is aligned to @align within [start, end).
- * 
- * Returns:
- * A physical address of the found area on success, 0 on failure.
- */
-static phys_addr_t memblock_find_free_area(phys_addr_t size, phys_addr_t align,
-				   phys_addr_t start, phys_addr_t end)
-{
-	u64 idx;
-	phys_addr_t range_start, range_end;
-
-	for_each_free_mem_range(idx, &range_start, &range_end) {
-		if (range_start < start)
-			continue;
-		if (range_end > end)
-			break;
-
-		phys_addr_t base = ALIGN(range_start, align);
-		if (base + size <= range_end)
-			return base;
-	}
-	return 0;
 }
 
 void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
