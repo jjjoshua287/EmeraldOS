@@ -28,7 +28,7 @@ struct memblock memblock = {
 	.curr_limit = MEMBLOCK_ALLOC_ANYWHERE,
 };
 
-bool memblock_debug = true;
+bool memblock_debug = false;
 bool memblock_can_resize = false;
 
 static inline const char *memblock_type_name(struct memblock_type *type)
