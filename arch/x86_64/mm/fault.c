@@ -2,7 +2,6 @@
 #include <asm/except_pf.h>
 #include <asm/processor.h>
 
-#include <emerald/fbcon.h>
 #include <emerald/vsprintf.h>
 #include <emerald/printk.h>
 #include <emerald/panic.h>
@@ -29,8 +28,6 @@ void handle_page_fault(struct pt_regs *regs)
          * this would do alot more things, but there currently isn't any page mapper,
          * so treat every exception as fatal.
          */
-
-	fbcon_clear();
 
 	char buf[64];
 	snprintf(buf, sizeof(buf), "Unable to handle page fault for address: 0x%016llx", cr2); 
