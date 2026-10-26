@@ -280,6 +280,7 @@ int memblock_add_range(struct memblock_type *type, phys_addr_t base, phys_addr_t
 	int start_rgn = -1, end_rgn = 0;
 	bool insert = false;
 	struct memblock_region *rgn;
+	phys_addr_t obase = base;
 	phys_addr_t end = base + memblock_cap_size(base, &size);
 
 	if (!size)
@@ -302,6 +303,7 @@ repeat:
 	 * to count the number of regions needed for the range and the second
 	 * time with %true @insert to actually insert them.
 	 */
+	base = obase;
 	nr_new = 0;
 
 	for_each_memblock_type(idx, type, rgn) {
@@ -346,7 +348,7 @@ repeat:
 	if (!insert) {
 		/* resize the array if we don't have enough space */
 		while (type->count + nr_new > type->max) {
-			if (memblock_double_array(type, base, size) < 0)
+			if (memblock_double_array(type, obase, size) < 0)
 				return -ENOMEM;
 		}
 		insert = true;
