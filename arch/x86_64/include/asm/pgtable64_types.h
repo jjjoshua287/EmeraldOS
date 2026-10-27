@@ -1,7 +1,7 @@
 #ifndef ASM_X86_64_PGTABLE_64_TYPES_H
 #define ASM_X86_64_PGTABLE_64_TYPES_H
 
-#ifndef __ASSEMBLY__
+#ifndef __ASSEMBLER__
 /* these are to allow use of C type-checking */
 typedef unsigned long pteval_t;
 typedef unsigned long pmdval_t;
@@ -16,7 +16,7 @@ typedef struct { pteval_t pte; } pte_t;
 #define PT_ENTRIES	512
 
 /* Page Global Directory */
-#define PGD_SHIFT 	38
+#define PGD_SHIFT 	39
 #define PTRS_PER_PGD	PT_ENTRIES
 
 /* Page Upper Directory */
@@ -35,7 +35,7 @@ typedef struct { pteval_t pte; } pte_t;
 #define PUD_SIZE (1UL << PUD_SHIFT)
 #define PUD_MASK (~(PUD_SIZE - 1))
 
-#define PGD_SIZE (1UL << PGD_SIZE)
+#define PGD_SIZE (1UL << PGD_SHIFT)
 #define PGD_MASK (~(PGD_SIZE - 1))
 
 /* Memory Map */

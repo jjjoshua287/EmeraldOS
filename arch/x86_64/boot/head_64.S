@@ -14,8 +14,8 @@
 .section .head.data, "aw", @progbits
 .balign PT_SIZE
 
-.set level2_pgt_slot, level2_kernel_pgt + PTE_KERNEL
-.set level3_pgt_slot, level3_kernel_pgt + PTE_KERNEL
+.set level2_pgt_slot, level2_kernel_pgt + __EARLY_PAGE_KERNEL
+.set level3_pgt_slot, level3_kernel_pgt + __EARLY_PAGE_KERNEL
 
 .global init_top_pgt
 init_top_pgt:
@@ -32,11 +32,11 @@ early_top_pgt:
 level3_kernel_pgt:
 	.fill L3_START_KERNEL, 8, 0
 	.quad level2_pgt_slot
-	.quad level2_fb_pgt + PTE_KERNEL
+	.quad level2_fb_pgt + __EARLY_PAGE_KERNEL
 
 .global level2_kernel_pgt
 level2_kernel_pgt:
-	PMD_ENTS 0, PTE_KERNEL_BIG, 510
+	PMD_ENTS 0, __EARLY_PAGE_KERNEL_BIG, 510
 	.quad 0
 	.quad 0
 
@@ -103,22 +103,22 @@ fix_pgt:
 
 	/* Map Level 3 identity slot */
 	movq %rbp, %rax
-	shrq $PDPT_SHIFT, %rax
+	shrq $PUD_SHIFT, %rax
 	andq $0x1ff, %rax
 
 	leaq level3_kernel_pgt(%rip), %rbx
 	leaq level2_kernel_pgt(%rip), %rdx
-	orq  $PTE_KERNEL, %rdx
+	orq  $__EARLY_PAGE_KERNEL, %rdx
 	movq %rdx, (%rbx, %rax, 8)
 
 	/* Map Level 4 identity slot */
 	movq %rbp, %rax
-	shrq $PML4_SHIFT, %rax
+	shrq $PGD_SHIFT, %rax
 	andq $0x1ff, %rax
 
 	leaq early_top_pgt(%rip), %rbx
 	leaq level3_kernel_pgt(%rip), %rdx
-	orq  $PTE_KERNEL, %rdx
+	orq  $__EARLY_PAGE_KERNEL, %rdx
 	movq %rdx, (%rbx, %rax, 8)
 
 	/* Check if we were relocated */
