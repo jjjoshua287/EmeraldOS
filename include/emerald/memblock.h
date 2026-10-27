@@ -1,7 +1,7 @@
 #ifndef EMERALD_MEMBLOCK_H
 #define EMERALD_MEMBLOCK_H
 
-#include <asm/pages.h>
+#include <asm/page.h>
 
 #include <emerald/types.h>
 #include <emerald/limits.h>

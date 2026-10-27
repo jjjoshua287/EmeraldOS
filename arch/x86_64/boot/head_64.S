@@ -1,6 +1,7 @@
-#include <asm/pages.h>
 #include <asm/segment.h>
 #include <asm/desc_defs.h>
+#include <asm/pgtable_types.h>
+
 #include <emerald/init.h>
 
 .macro PMD_ENTS s, f, count

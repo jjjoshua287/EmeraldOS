@@ -1,5 +1,5 @@
 #include <asm/e820/api.h>
-#include <asm/pages.h>
+#include <asm/page.h>
 
 #include <emerald/types.h>
 #include <emerald/runtime.h>

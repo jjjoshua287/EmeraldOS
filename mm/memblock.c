@@ -10,7 +10,7 @@
 #include <emerald/mm.h>
 
 #include <asm/bug.h>
-#include <asm/pages.h>
+#include <asm/page.h>
 
 static struct memblock_region memblock_mem_init_regions[MEMBLOCK_INIT_REGIONS];
 static struct memblock_region memblock_rerserved_init_regions[MEMBLOCK_INIT_REGIONS];

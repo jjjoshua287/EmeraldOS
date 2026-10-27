@@ -1,7 +1,7 @@
 #ifndef EMERALD_MEMORY_MANAGEMENT_H
 #define EMERALD_MEMORY_MANAGEMENT_H
 
-#include <asm/pages.h>
+#include <asm/page.h>
 
 /* 
  * convert between pages and MB.
@@ -19,4 +19,4 @@
 /* test whether an address (unsigned long or pointer) is aligned to PAGE_SIZE */
 #define PAGE_ALIGNED(addr) IS_ALIGNED((unsigned long)(addr), PAGE_SIZE)
 
-#endif
+#endif	/* EMERALD_MEMORY_MANAGEMENT_H */

@@ -3,7 +3,9 @@
 #include <emerald/runtime.h>
 #include <emerald/fbcon.h>
 
-#include <asm/pages.h>
+#include <asm/page.h>
+#include <asm/pgtable_types.h>
+
 #include <asm/setup.h>
 #include <asm/e820/types.h>
 #include <asm/e820/api.h>
@@ -19,7 +21,7 @@ void early_setup_framebuffer(struct screen_info *scr)
 	size_t hpages = ALIGN(scr->lfb_size + offset, HPAGE_SIZE) / HPAGE_SIZE;
 	
 	for (size_t i = 0; i < hpages && i < PT_ENTRIES; i++)
-		level2_fb_pgt_va[i] = (phys_base + i * HPAGE_SIZE) | PTE_MMIO;
+		level2_fb_pgt_va[i] = (phys_base + i * HPAGE_SIZE) | __EARLY_PAGE_KERNEL_IO;
 	
 	/* Invalidate TLB */
 	asm volatile("movq %%cr3, %%rax\n\t"
