@@ -4,7 +4,7 @@
 #include <emerald/fbcon.h>
 
 #include <asm/page.h>
-#include <asm/pgtable_types.h>
+#include <asm/pgtable.h>
 
 #include <asm/setup.h>
 #include <asm/e820/types.h>
@@ -42,6 +42,7 @@ int start_kernel(struct boot_info *boot);
 /* architecture-specific entry point for kernel */
 void x86_64_start_kernel(struct boot_info *boot)
 {
+	early_init_nx();
 	fixup_boot_info(boot);
 	init_fbcon(&boot->info);
 

@@ -1,1 +1,1 @@
-SRCS += $(ARCH_DIR)/mm/fault.c
+SRCS += $(ARCH_DIR)/mm/fault.c $(ARCH_DIR)/mm/pgtable.c

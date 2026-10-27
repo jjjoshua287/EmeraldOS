@@ -2,6 +2,8 @@
 #define ASM_X86_64_PGTABLE_64_TYPES_H
 
 #ifndef __ASSEMBLER__
+#include <emerald/types.h>
+
 /* these are to allow use of C type-checking */
 typedef unsigned long pteval_t;
 typedef unsigned long pmdval_t;

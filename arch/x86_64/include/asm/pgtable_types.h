@@ -113,15 +113,33 @@ typedef struct { pteval_t pgprot; } pgprot_t;
 #define PAGE_READONLY		__pg(__PP |    0 | _USR | ___A | __NX |    0 |    0 |    0)
 #define PAGE_READONLY_EXEC	__pg(__PP |    0 | _USR | ___A |    0 |    0 |    0 |    0)
 
-#define PAGE_KERNEL_RO		__pg(__PP |    0 |    0 | ___A | __NX |    0 |    0 | ___G)
-#define PAGE_KERNEL_ROX		__pg(__PP |    0 |    0 | ___A |    0 |    0 |    0 | ___G)
-#define PAGE_KERNEL		__pg(__PP | __RW |    0 | ___A | __NX | ___D |    0 | ___G)
-#define PAGE_KERNEL_EXEC	__pg(__PP | __RW |    0 | ___A |    0 | ___D |    0 | ___G)
-#define PAGE_KERNEL_NOCACHE	__pg(__PP | __RW |    0 | ___A | __NX | ___D |    0 | ___G | __NC)
-#define PAGE_KERNEL_LARGE	__pg(__PP | __RW |    0 | ___A | __NX | ___D | __PS | ___G)
-#define PAGE_KERNEL_LARGE_EXEC	__pg(__PP | __RW |    0 | ___A |    0 | ___D | __PS | ___G)
+#define _PAGE_KERNEL_RO		__pg(__PP |    0 |    0 | ___A | __NX |    0 |    0 | ___G)
+#define _PAGE_KERNEL_ROX	__pg(__PP |    0 |    0 | ___A |    0 |    0 |    0 | ___G)
+#define _PAGE_KERNEL		__pg(__PP | __RW |    0 | ___A | __NX | ___D |    0 | ___G)
+#define _PAGE_KERNEL_EXEC	__pg(__PP | __RW |    0 | ___A |    0 | ___D |    0 | ___G)
+#define _PAGE_KERNEL_NOCACHE	__pg(__PP | __RW |    0 | ___A | __NX | ___D |    0 | ___G | __NC)
+#define _PAGE_KERNEL_LARGE	__pg(__PP | __RW |    0 | ___A | __NX | ___D | __PS | ___G)
+#define _PAGE_KERNEL_LARGE_EXEC	__pg(__PP | __RW |    0 | ___A |    0 | ___D | __PS | ___G)
 
-#define PAGE_KERNEL_IO 		PAGE_KERNEL
-#define PAGE_KERNEL_IO_NOCACHE	PAGE_KERNEL_NOCACHE
+#define _PAGE_KERNEL_IO 	_PAGE_KERNEL
+#define _PAGE_KERNEL_IO_NOCACHE	_PAGE_KERNEL_NOCACHE
+
+#ifndef __ASSEMBLER__
+extern pteval_t __supported_pte_mask;
+
+#define __pgprot_mask(x) __pgprot((x) & __supported_pte_mask)
+
+#define _PAGE_KERNEL_RO		__pgprot_mask(_PAGE_KERNEL_RO)
+#define _PAGE_KERNEL_ROX	__pgprot_mask(_PAGE_KERNEL_ROX)
+#define _PAGE_KERNEL		__pgprot_mask(_PAGE_KERNEL)
+#define _PAGE_KERNEL_EXEC	__pgprot_mask(_PAGE_KERNEL_EXEC)
+#define _PAGE_KERNEL_NOCACHE	__pgprot_mask(_PAGE_KERNEL_NOCACHE)
+#define _PAGE_KERNEL_LARGE	__pgprot_mask(_PAGE_KERNEL_LARGE)
+#define _PAGE_KERNEL_LARGE_EXEC	__pgprot_mask(_PAGE_KERNEL_LARGE_EXEC)
+
+#define PAGE_KERNEL_IO		__pgprot_mask(_PAGE_KERNEL_IO)
+#define PAGE_KERNEL_IO_NOCACHE	__pgprot_mask(_PAGE_KERNEL_IO_NOCACHE)
+
+#endif
 
 #endif	/* ASM_X86_PGTABLE_TYPES_H */
