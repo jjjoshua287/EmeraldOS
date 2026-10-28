@@ -140,6 +140,96 @@ extern pteval_t __supported_pte_mask;
 #define PAGE_KERNEL_IO		__pgprot_mask(_PAGE_KERNEL_IO)
 #define PAGE_KERNEL_IO_NOCACHE	__pgprot_mask(_PAGE_KERNEL_IO_NOCACHE)
 
+#define PTE_PFN_SHIFT 	12
+#define PTE_PFN_MASK	(0xFFFFFFFFFFULL << PTE_PFN_SHIFT)
+#define PTE_FLAGS_MASK	(~PTE_PFN_MASK)
+
+static inline pte_t native_make_pte(pteval_t val)
+{
+	return (pte_t) { .pte = val };
+}
+
+static inline pteval_t native_pte_val(pte_t pte)
+{
+	return pte.pte;
+}
+
+static inline pteval_t pte_flags(pte_t pte)
+{
+	return native_pte_val(pte) & PTE_FLAGS_MASK;
+}
+
+static inline pmd_t native_make_pmd(pmdval_t val)
+{
+	return (pmd_t) { .pmd = val };
+}
+
+static inline pmdval_t native_pmd_val(pmd_t pmd)
+{
+	return pmd.pmd;
+}
+
+static inline pmdval_t pmd_pfn_mask(pmd_t pmd)
+{
+	if (native_pmd_val(pmd) & _PAGE_PS)
+		return (0xFFFFFFFFFFULL << PMD_SHIFT);
+	else
+		return PTE_PFN_MASK;
+}
+
+static inline pmdval_t pmd_flags_mask(pmd_t pmd)
+{
+	return ~pmd_pfn_mask(pmd);
+}
+
+static inline pmdval_t pmd_flags(pmd_t pmd)
+{
+	return native_pmd_val(pmd) & pmd_flags_mask(pmd);
+}
+
+static inline pud_t native_make_pud(pudval_t val)
+{
+	return (pud_t) { .pud = val };
+}
+
+static inline pudval_t native_pud_val(pud_t pud)
+{
+	return pud.pud;
+}
+
+static inline pudval_t pud_pfn_mask(pud_t pud)
+{
+	if (native_pud_val(pud) & _PAGE_PS)
+		return (0xFFFFFFFFFFULL << PUD_SHIFT);
+	else
+		return PTE_PFN_MASK;
+}
+
+static inline pudval_t pud_flags_mask(pud_t pud)
+{
+	return ~pud_pfn_mask(pud);
+}
+
+static inline pudval_t pud_flags(pud_t pud)
+{
+	return native_pud_val(pud) & pud_flags_mask(pud);
+}
+
+static inline pgd_t native_make_pgd(pgdval_t val)
+{
+	return (pgd_t) { .pgd = val };
+}
+
+static inline pgdval_t native_pgd_val(pgd_t pgd)
+{
+	return pgd.pgd;
+}
+
+static inline pgdval_t pgd_flags(pgd_t pgd)
+{
+	return native_pgd_val(pgd) & PTE_FLAGS_MASK;
+}
+
 #endif
 
 #endif	/* ASM_X86_PGTABLE_TYPES_H */

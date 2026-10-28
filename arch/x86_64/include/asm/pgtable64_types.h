@@ -11,6 +11,10 @@ typedef unsigned long pudval_t;
 typedef unsigned long pgdval_t;
 
 typedef struct { pteval_t pte; } pte_t;
+typedef struct { pmdval_t pmd; } pmd_t;
+typedef struct { pudval_t pud; } pud_t;
+typedef struct { pgdval_t pgd; } pgd_t;
+
 #endif	/* !__ASSEMBLY__ */
 
 /* entries per page directory level */

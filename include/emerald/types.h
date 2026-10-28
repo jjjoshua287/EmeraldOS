@@ -16,4 +16,6 @@ typedef int64_t s64;
 
 typedef u64 phys_addr_t;
 
+typedef unsigned long pfn_t;
+
 #endif
