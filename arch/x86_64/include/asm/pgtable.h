@@ -262,4 +262,54 @@ static inline pteval_t pte_make(pfn_t pfn, pteval_t flags)
 	return (pfn << PTE_PFN_SHIFT) | flags;
 }
 
+static inline pte_t pte_wrprotect(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_RW);
+}
+
+static inline pte_t pte_mkwrite(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_RW);
+}
+
+static inline pte_t pte_mkdirty(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_DIRTY);
+}
+
+static inline pte_t pte_mkclean(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_DIRTY);
+}
+
+static inline pte_t pte_mkyoung(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_ACCESSED);
+}
+
+static inline pte_t pte_mkold(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_ACCESSED);
+}
+
+static inline pte_t pte_mkhuge(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_PS);
+}
+
+static inline pte_t pte_clrhuge(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_PS);
+}
+
+static inline pte_t pte_mkglobal(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_GLOBAL);
+}
+
+static inline pte_t pte_clrglobal(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_GLOBAL);
+}
+
 #endif	/* ASM_X86_64_PGTABLE_H */
