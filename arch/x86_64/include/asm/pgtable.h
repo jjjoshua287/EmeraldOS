@@ -211,6 +211,10 @@ static inline bool pgd_dirty(pgd_t pgd)
 	return pgd_flags(pgd) & _PAGE_DIRTY;
 }
 
+/*
+ * Functions that return a Page Frame Index (PFN)
+ */
+
 #define PTE_PFN_SHIFT PAGE_SHIFT
 
 static inline pfn_t pte_pfn(pte_t pte)
@@ -237,6 +241,10 @@ static inline pfn_t pgd_pfn(pgd_t pgd)
 	return (val & PTE_PFN_MASK) >> PTE_PFN_SHIFT;
 }
 
+/*
+ * Functions for getting the index of a PGD/PUD/PMD/PTE given a virtual addr.
+ */
+
 static inline int pgd_index(unsigned long addr)
 {
 	return (addr >> PGD_SHIFT) & 0x1ff;
@@ -261,6 +269,10 @@ static inline pteval_t pte_make(pfn_t pfn, pteval_t flags)
 {
 	return (pfn << PTE_PFN_SHIFT) | flags;
 }
+
+/*
+ * State Mutators
+ */
 
 static inline pte_t pte_wrprotect(pte_t pte)
 {
