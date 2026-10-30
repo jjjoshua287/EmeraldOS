@@ -3,11 +3,117 @@
 
 #include <asm/page.h>
 #include <asm/pgtable_types.h>
+#include <emerald/compiler.h>
 
 void early_init_nx(void);
 
+#define set_pgd(pgdp, pgd) 	native_set_pgd(pgdp, pgd)
+#define pgd_clear(pgd)		native_pgd_clear(pgd)
+
+#define set_pud(pudp, pud) 	native_set_pud(pudp, pud)
+#define pud_clear(pud)		native_pud_clear(pud)
+
+#define set_pmd(pmdp, pmd) 	native_set_pmd(pmdp, pmd)
+#define pmd_clear(pmd)		native_pmd_clear(pmd)
+
+#define set_pte(ptep, pte) 	native_set_pte(ptep, pte)
+#define pte_clear(pmd)		native_pte_clear(pte)
+
+#define pgd_val(x) 	native_pgd_val(x)
+#define __pgd(x) 	native_make_pgd(x)
+
+#define pud_val(x) 	native_pud_val(x)
+#define __pud(x) 	native_make_pud(x)
+
+#define pmd_val(x) 	native_pmd_val(x)
+#define __pmd(x) 	native_make_pmd(x)
+
+#define pte_val(x) 	native_pte_val(x)
+#define __pte(x) 	native_make_pte(x)
+
+/*
+ * Modifiers and Setters
+ */
+
+static inline void native_set_pte(pte_t *ptep, pte_t pte)
+{
+	WRITE_ONCE(*ptep, pte);
+}
+
+static inline void native_pte_clear(pte_t *ptep)
+{
+	native_set_pte(ptep, __pte(0));
+}
+
+static inline void native_set_pud(pud_t *pudp, pud_t pud)
+{
+	WRITE_ONCE(*pudp, pud);
+}
+
+static inline void native_pud_clear(pud_t *pudp)
+{
+	set_pud(pudp, __pud(0));
+}
+
+static inline void native_set_pmd(pmd_t *pmdp, pmd_t pmd)
+{
+	WRITE_ONCE(*pmdp, pmd);
+}
+
+static inline void native_pmd_clear(pmd_t *pmdp)
+{
+	set_pmd(pmdp, __pmd(0));
+}
+
+static inline void native_set_pgd(pgd_t *pgdp, pgd_t pgd)
+{
+	WRITE_ONCE(*pgdp, pgd);
+}
+
+static inline void native_pgd_clear(pgd_t *pgdp)
+{
+	set_pgd(pgdp, __pgd(0));
+}
+
+static inline pte_t pte_set_flags(pte_t pte, pteval_t set)
+{
+	pteval_t val = native_pte_val(pte);
+	return native_make_pte(val | set);
+}
+
+static inline pte_t pte_clear_flags(pte_t pte, pteval_t clear)
+{
+	pteval_t val = native_pte_val(pte);
+	return native_make_pte(val & ~clear);
+}
+
+static inline pmd_t pmd_set_flags(pmd_t pmd, pmdval_t set)
+{
+	pmdval_t val = native_pmd_val(pmd);
+	return native_make_pmd(val | set);
+}
+
+static inline pmd_t pmd_clear_flags(pmd_t pmd, pmdval_t clear)
+{
+	pmdval_t val = native_pmd_val(pmd);
+	return native_make_pmd(val & ~clear);
+}
+
+static inline pud_t pud_set_flags(pud_t pud, pudval_t set)
+{
+	pudval_t val = native_pud_val(pud);
+	return native_make_pud(val | set);
+}
+
+static inline pud_t pud_clear_flags(pud_t pud, pudval_t clear)
+{
+	pudval_t val = native_pud_val(pud);
+	return native_make_pud(val & ~clear);
+}
+
 /*
  * Check various bits of page tables
+ * - assumes pte_present() is true
  */
 
 static inline bool pte_present(pte_t pte)
@@ -109,26 +215,26 @@ static inline bool pgd_dirty(pgd_t pgd)
 
 static inline pfn_t pte_pfn(pte_t pte)
 {
-	pteval_t pte_val = native_pte_val(pte);
-	return (pte_val & PTE_PFN_MASK) >> PTE_PFN_SHIFT;
+	pteval_t val = pte_val(pte);
+	return (val & PTE_PFN_MASK) >> PTE_PFN_SHIFT;
 }
 
 static inline pfn_t pmd_pfn(pmd_t pmd)
 {
-	pmdval_t pmd_val = native_pmd_val(pmd);
-	return (pmd_val & pmd_pfn_mask(pmd)) >> PTE_PFN_SHIFT;
+	pmdval_t val = pmd_val(pmd);
+	return (val & pmd_pfn_mask(pmd)) >> PTE_PFN_SHIFT;
 }
 
 static inline pfn_t pud_pfn(pud_t pud)
 {
-	pudval_t pud_val = native_pud_val(pud);
-	return (pud_val & pud_pfn_mask(pud)) >> PTE_PFN_SHIFT;
+	pudval_t val = pud_val(pud);
+	return (val & pud_pfn_mask(pud)) >> PTE_PFN_SHIFT;
 }
 
 static inline pfn_t pgd_pfn(pgd_t pgd)
 {
-	pgdval_t pgd_val = native_pgd_val(pgd);
-	return (pgd_val & PTE_PFN_MASK) >> PTE_PFN_SHIFT;
+	pgdval_t val = pgd_val(pgd);
+	return (val & PTE_PFN_MASK) >> PTE_PFN_SHIFT;
 }
 
 static inline int pgd_index(unsigned long addr)
