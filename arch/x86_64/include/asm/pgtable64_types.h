@@ -15,7 +15,7 @@ typedef struct { pmdval_t pmd; } pmd_t;
 typedef struct { pudval_t pud; } pud_t;
 typedef struct { pgdval_t pgd; } pgd_t;
 
-#endif	/* !__ASSEMBLY__ */
+#endif	/* !__ASSEMBLER__ */
 
 /* entries per page directory level */
 #define PT_SIZE		4096

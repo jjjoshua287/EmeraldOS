@@ -210,8 +210,6 @@ static inline bool pgd_present(pgd_t pgd)
  * Functions that return a Page Frame Number (PFN)
  */
 
-#define PTE_PFN_SHIFT PAGE_SHIFT
-
 static inline unsigned long pte_pfn(pte_t pte)
 {
 	pteval_t val = pte_val(pte);

@@ -102,8 +102,15 @@ typedef struct { pteval_t pgprot; } pgprot_t;
 #endif
 
 #define pgprot_val(x) ((x).pgprot)
-#define __pgprot(x) ((pgprot_t){ x })
+#define __pgprot(x) ((pgprot_t){ (x) })
 #define __pg(x) __pgprot(x)
+
+/* 
+ * Page Tables need to have Write=1 in order for lower PTEs to be writable 
+ * NOTE: columns are used for readability purposes
+ */
+#define _KERNEL_PAGE_TABLE	__pg(__PP | __RW |    0 | ___A)
+#define _PAGE_TABLE		__pg(__PP | __RW | _USR | ___A)	
 
 #define PAGE_NONE 		__pg(   0 |    0 |    0 | ___A |    0 |    0 |    0 | ___G)
 #define PAGE_SHARED		__pg(__PP | __RW | _USR | ___A | __NX |    0 |    0 |    0)
@@ -129,13 +136,13 @@ extern pteval_t __supported_pte_mask;
 
 #define __pgprot_mask(x) __pgprot((x) & __supported_pte_mask)
 
-#define _PAGE_KERNEL_RO		__pgprot_mask(_PAGE_KERNEL_RO)
-#define _PAGE_KERNEL_ROX	__pgprot_mask(_PAGE_KERNEL_ROX)
-#define _PAGE_KERNEL		__pgprot_mask(_PAGE_KERNEL)
-#define _PAGE_KERNEL_EXEC	__pgprot_mask(_PAGE_KERNEL_EXEC)
-#define _PAGE_KERNEL_NOCACHE	__pgprot_mask(_PAGE_KERNEL_NOCACHE)
-#define _PAGE_KERNEL_LARGE	__pgprot_mask(_PAGE_KERNEL_LARGE)
-#define _PAGE_KERNEL_LARGE_EXEC	__pgprot_mask(_PAGE_KERNEL_LARGE_EXEC)
+#define PAGE_KERNEL_RO		__pgprot_mask(_PAGE_KERNEL_RO)
+#define PAGE_KERNEL_ROX		__pgprot_mask(_PAGE_KERNEL_ROX)
+#define PAGE_KERNEL		__pgprot_mask(_PAGE_KERNEL)
+#define PAGE_KERNEL_EXEC	__pgprot_mask(_PAGE_KERNEL_EXEC)
+#define PAGE_KERNEL_NOCACHE	__pgprot_mask(_PAGE_KERNEL_NOCACHE)
+#define PAGE_KERNEL_LARGE	__pgprot_mask(_PAGE_KERNEL_LARGE)
+#define PAGE_KERNEL_LARGE_EXEC	__pgprot_mask(_PAGE_KERNEL_LARGE_EXEC)
 
 #define PAGE_KERNEL_IO		__pgprot_mask(_PAGE_KERNEL_IO)
 #define PAGE_KERNEL_IO_NOCACHE	__pgprot_mask(_PAGE_KERNEL_IO_NOCACHE)
@@ -172,7 +179,7 @@ static inline pmdval_t native_pmd_val(pmd_t pmd)
 static inline pmdval_t pmd_pfn_mask(pmd_t pmd)
 {
 	if (native_pmd_val(pmd) & _PAGE_PS)
-		return (0xFFFFFFFFFFULL << PMD_SHIFT);
+		return (PTE_PFN_MASK & PMD_MASK);
 	else
 		return PTE_PFN_MASK;
 }
@@ -200,7 +207,7 @@ static inline pudval_t native_pud_val(pud_t pud)
 static inline pudval_t pud_pfn_mask(pud_t pud)
 {
 	if (native_pud_val(pud) & _PAGE_PS)
-		return (0xFFFFFFFFFFULL << PUD_SHIFT);
+		return (PTE_PFN_MASK & PUD_MASK);
 	else
 		return PTE_PFN_MASK;
 }
