@@ -141,11 +141,6 @@ static inline bool pte_dirty(pte_t pte)
 	return pte_flags(pte) & _PAGE_DIRTY;
 }
 
-static inline bool pte_huge(pte_t pte)
-{
-	return pte_flags(pte) & _PAGE_PS;
-}
-
 static inline bool pte_global(pte_t pte)
 {
 	return pte_flags(pte) & _PAGE_GLOBAL;
@@ -181,19 +176,29 @@ static inline bool pmd_huge(pmd_t pmd)
 	return pmd_flags(pmd) & _PAGE_PS;
 }
 
+static inline bool pmd_exec(pmd_t pmd)
+{
+	return !(pmd_flags(pmd) & _PAGE_NX);
+}
+
 static inline bool pud_present(pud_t pud)
 {
 	return pud_flags(pud) & _PAGE_PRESENT;
 }
 
-static inline bool pud_young(pud_t pud)
+static inline bool pud_writable(pud_t pud)
 {
-	return pud_flags(pud) & _PAGE_ACCESSED;
+	return pud_flags(pud) & _PAGE_RW;
 }
 
-static inline bool pud_dirty(pud_t pud)
+static inline bool pud_huge(pud_t pud)
 {
-	return pud_flags(pud) & _PAGE_DIRTY;
+	return pud_flags(pud) & _PAGE_PS;
+}
+
+static inline bool pud_exec(pud_t pud)
+{
+	return !(pud_flags(pud) & _PAGE_NX);
 }
 
 static inline bool pgd_present(pgd_t pgd)
@@ -201,41 +206,31 @@ static inline bool pgd_present(pgd_t pgd)
 	return pgd_flags(pgd) & _PAGE_PRESENT;
 }
 
-static inline bool pgd_young(pgd_t pgd)
-{
-	return pgd_flags(pgd) & _PAGE_ACCESSED;
-}
-
-static inline bool pgd_dirty(pgd_t pgd)
-{
-	return pgd_flags(pgd) & _PAGE_DIRTY;
-}
-
 /*
- * Functions that return a Page Frame Index (PFN)
+ * Functions that return a Page Frame Number (PFN)
  */
 
 #define PTE_PFN_SHIFT PAGE_SHIFT
 
-static inline pfn_t pte_pfn(pte_t pte)
+static inline unsigned long pte_pfn(pte_t pte)
 {
 	pteval_t val = pte_val(pte);
 	return (val & PTE_PFN_MASK) >> PTE_PFN_SHIFT;
 }
 
-static inline pfn_t pmd_pfn(pmd_t pmd)
+static inline unsigned long pmd_pfn(pmd_t pmd)
 {
 	pmdval_t val = pmd_val(pmd);
 	return (val & pmd_pfn_mask(pmd)) >> PTE_PFN_SHIFT;
 }
 
-static inline pfn_t pud_pfn(pud_t pud)
+static inline unsigned long pud_pfn(pud_t pud)
 {
 	pudval_t val = pud_val(pud);
 	return (val & pud_pfn_mask(pud)) >> PTE_PFN_SHIFT;
 }
 
-static inline pfn_t pgd_pfn(pgd_t pgd)
+static inline unsigned long pgd_pfn(pgd_t pgd)
 {
 	pgdval_t val = pgd_val(pgd);
 	return (val & PTE_PFN_MASK) >> PTE_PFN_SHIFT;
@@ -265,11 +260,6 @@ static inline int pte_index(unsigned long addr)
 	return (addr >> PAGE_SHIFT) & 0x1ff;
 }
 
-static inline pteval_t pte_make(pfn_t pfn, pteval_t flags)
-{
-	return (pfn << PTE_PFN_SHIFT) | flags;
-}
-
 /*
  * State Mutators
  */
@@ -284,44 +274,58 @@ static inline pte_t pte_mkwrite(pte_t pte)
 	return pte_set_flags(pte, _PAGE_RW);
 }
 
-static inline pte_t pte_mkdirty(pte_t pte)
+static inline pte_t pte_mkexec(pte_t pte)
 {
-	return pte_set_flags(pte, _PAGE_DIRTY);
+	return pte_clear_flags(pte, _PAGE_NX);
 }
 
-static inline pte_t pte_mkclean(pte_t pte)
+static inline pmd_t pmd_wrprotect(pmd_t pmd)
 {
-	return pte_clear_flags(pte, _PAGE_DIRTY);
+	return pmd_clear_flags(pmd, _PAGE_RW);
 }
 
-static inline pte_t pte_mkyoung(pte_t pte)
+static inline pmd_t pmd_mkwrite(pmd_t pmd)
 {
-	return pte_set_flags(pte, _PAGE_ACCESSED);
+	return pmd_set_flags(pmd, _PAGE_RW);
 }
 
-static inline pte_t pte_mkold(pte_t pte)
+static inline pmd_t pmd_mkexec(pmd_t pmd)
 {
-	return pte_clear_flags(pte, _PAGE_ACCESSED);
+	return pmd_clear_flags(pmd, _PAGE_NX);
 }
 
-static inline pte_t pte_mkhuge(pte_t pte)
+/*
+ * Functions to build entries from a PFN + pgprot_t
+ */
+
+static inline pte_t pfn_pte(unsigned long pfn, pgprot_t prot)
 {
-	return pte_set_flags(pte, _PAGE_PS);
+	return __pte(((pteval_t)pfn << PTE_PFN_SHIFT) | pgprot_val(prot));
 }
 
-static inline pte_t pte_clrhuge(pte_t pte)
+static inline pmd_t pfn_pmd(unsigned long pfn, pgprot_t prot)
 {
-	return pte_clear_flags(pte, _PAGE_PS);
+	return __pmd(((pmdval_t)pfn << PTE_PFN_SHIFT) | pgprot_val(prot));
 }
 
-static inline pte_t pte_mkglobal(pte_t pte)
+static inline pgprot_t pgprot_set(pgprot_t prot, pteval_t bits)
 {
-	return pte_set_flags(pte, _PAGE_GLOBAL);
+	return __pgprot(pgprot_val(prot) | bits);
 }
 
-static inline pte_t pte_clrglobal(pte_t pte)
+static inline pgprot_t pgprot_clear(pgprot_t prot, pteval_t bits)
 {
-	return pte_set_flags(pte, _PAGE_GLOBAL);
+	return __pgprot(pgprot_val(prot) & ~bits);
+}
+
+/* split a 2M entry into 4K ones: drop PS, and move PAT from bit 12 to bit 7 */
+static inline pgprot_t pgprot_split_large(pgprot_t prot)
+{
+	pteval_t v = pgprot_val(prot) & ~(_PAGE_PS | _PAGE_PAT_LARGE);
+
+	if (pgprot_val(prot) & _PAGE_PAT_LARGE)
+		v |= _PAGE_PAT;
+	return __pgprot(v);
 }
 
 #endif	/* ASM_X86_64_PGTABLE_H */
