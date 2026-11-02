@@ -47,7 +47,6 @@ void x86_64_start_kernel(struct boot_info *boot)
 
 	setup_gdt();
 	setup_idt();
-	e820_sanitize_table(&boot->mem);
 
 	start_kernel(boot);
 }

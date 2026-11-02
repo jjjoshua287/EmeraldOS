@@ -30,7 +30,9 @@ static inline void do_alloc_test()
 void setup_arch(struct boot_info *boot) 
 {
 	do_early_reserves(boot);
-	e820_memblock_setup(&boot->mem);
+	e820_memory_setup(&boot->mem);
+	e820_memblock_setup();
+	
 	memblock_set_curr_limit(EARLY_MAP_END);
 	do_alloc_test();
 
