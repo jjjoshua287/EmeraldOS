@@ -12,6 +12,12 @@
 #include <asm/bug.h>
 #include <asm/page.h>
 
+unsigned long min_low_pfn;
+unsigned long max_low_pfn;
+
+unsigned long max_pfn;
+unsigned long long max_possible_pfn;
+
 static struct memblock_region memblock_mem_init_regions[MEMBLOCK_INIT_REGIONS];
 static struct memblock_region memblock_rerserved_init_regions[MEMBLOCK_INIT_REGIONS];
 

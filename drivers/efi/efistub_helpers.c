@@ -1,4 +1,4 @@
-#include <asm/e820/types.h>
+#include <asm/e820/api.h>
 
 #include <emerald/efi.h>
 #include <emerald/elf.h>
@@ -101,8 +101,6 @@ void *load_kernel(struct efi_boot_services *gBS, struct efi_memory_attribute_pro
 	return NULL;
 }
 
-void insert_e820_entry(struct e820_table *table, u64 addr, u64 size, enum e820_type type);
-
 /* Convert a memory map obtained from UEFI's GetMemoryMap to an E820 Memory Map */
 void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out)
 {
@@ -143,6 +141,6 @@ void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out)
 			break;
 		}
 
-		insert_e820_entry(out, desc->PhysicalStart, size, type);
+		e820_insert_entry(out, desc->PhysicalStart, size, type);
 	}
 }

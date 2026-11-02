@@ -7,7 +7,6 @@
 #include <asm/pgtable.h>
 
 #include <asm/setup.h>
-#include <asm/e820/types.h>
 #include <asm/e820/api.h>
 
 #define EARLY_FB_VIRT_BASE ((void *)0xffffffffc0000000UL)
@@ -48,7 +47,7 @@ void x86_64_start_kernel(struct boot_info *boot)
 
 	setup_gdt();
 	setup_idt();
-	sanitize_e820_table(&boot->mem);
+	e820_sanitize_table(&boot->mem);
 
 	start_kernel(boot);
 }

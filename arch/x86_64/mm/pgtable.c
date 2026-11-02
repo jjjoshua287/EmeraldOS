@@ -1,9 +1,6 @@
-#include <asm/pgtable.h>
 #include <asm/cpuid.h>
 #include <asm/msr.h>
-
-/* used in PAGE_* macros */
-pteval_t __supported_pte_mask = ~0ULL;
+#include <asm/pgtable.h>
 
 void early_init_nx(void)
 {

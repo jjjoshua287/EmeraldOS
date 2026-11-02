@@ -7,6 +7,15 @@
 #include <emerald/limits.h>
 #include <emerald/compiler.h>
 
+extern unsigned long min_low_pfn;
+extern unsigned long max_low_pfn;
+
+/* highest page */
+extern unsigned long max_pfn;
+
+/* highest possible page */
+extern unsigned long long max_possible_pfn;
+
 /* the initial number of memblock regions, can be increased dynamically */
 #define MEMBLOCK_INIT_REGIONS 128
 

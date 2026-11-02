@@ -26,7 +26,7 @@ const char *e820_type_name(enum e820_type type)
 	}
 }
 
-void print_e820_table(const struct e820_table *table)
+void e820_print_table(const struct e820_table *table)
 {
 	u64 end_prev = 0;
 
@@ -49,7 +49,7 @@ void print_e820_table(const struct e820_table *table)
 }
 
 /* Merge adjacent regions */
-void sanitize_e820_table(struct e820_table *table) 
+void e820_sanitize_table(struct e820_table *table) 
 {
 	u32 w = 0;	/* index of the last kept entry */
 	/* If we only have 1 entry, don't sort it. */

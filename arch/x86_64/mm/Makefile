@@ -1,1 +1,2 @@
-SRCS += $(ARCH_DIR)/mm/fault.c $(ARCH_DIR)/mm/pgtable.c
+FILES = fault.c pgtable.c init.c
+SRCS += $(addprefix $(ARCH_DIR)/mm/, $(FILES))

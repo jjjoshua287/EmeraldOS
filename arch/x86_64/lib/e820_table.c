@@ -4,7 +4,7 @@
 #include <asm/e820/types.h>
 
 /**
-  * insert_e820_entry: Insert an entry into an e820 memory map in ascending order.
+  * e820_insert_entry: Insert an entry into an e820 memory map in ascending order.
   * @table: ptr to struct e820_table
   * @addr:  physical address
   * @size:  size of entry
@@ -12,7 +12,7 @@
   * 
   * - The entries are sorted ascendingly by @addr with insertion sort.
   */
-void insert_e820_entry(struct e820_table *table, u64 addr, u64 size, enum e820_type type)
+void e820_insert_entry(struct e820_table *table, u64 addr, u64 size, enum e820_type type)
 {
 	if (size == 0)
 		return;

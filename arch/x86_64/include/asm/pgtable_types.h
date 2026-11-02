@@ -133,8 +133,9 @@ typedef struct { pteval_t pgprot; } pgprot_t;
 
 #ifndef __ASSEMBLER__
 extern pteval_t __supported_pte_mask;
+extern pteval_t __default_kernel_pte_mask;
 
-#define __pgprot_mask(x) __pgprot((x) & __supported_pte_mask)
+#define __pgprot_mask(x) __pgprot((x) & __default_kernel_pte_mask)
 
 #define PAGE_KERNEL_RO		__pgprot_mask(_PAGE_KERNEL_RO)
 #define PAGE_KERNEL_ROX		__pgprot_mask(_PAGE_KERNEL_ROX)

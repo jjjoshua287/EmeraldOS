@@ -5,6 +5,9 @@
 #include <asm/pgtable_types.h>
 #include <emerald/compiler.h>
 
+extern pgd_t init_top_pgt[];
+#define swapper_pgd_dir init_top_pgt
+
 void early_init_nx(void);
 
 #define set_pgd(pgdp, pgd) 	native_set_pgd(pgdp, pgd)
