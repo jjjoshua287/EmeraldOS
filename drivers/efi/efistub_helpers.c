@@ -1,0 +1,148 @@
+#include <asm/e820/types.h>
+
+#include <emerald/efi.h>
+#include <emerald/elf.h>
+#include <emerald/align.h>
+#include <emerald/string.h>
+#include <emerald/runtime.h>
+#include <emerald/compiler.h>
+
+#include "efistub.h"
+
+/* Reverse a string in-place. */
+static void efi_reverse_string(efi_char16_t *start, efi_char16_t *end)
+{
+	while (start < end) {
+		efi_char16_t tmp = *start;
+		*start++ = *end;
+		*end-- = tmp;
+	}
+}
+
+// convert an unsigned integer into a string, returning strlen()
+int efi_utoa(unsigned long long num, efi_char16_t *out_buf, int base)
+{
+	int i = 0;
+	const char *digits = "0123456789abcdef";
+	do {
+		out_buf[i++] = (efi_char16_t)digits[num % base];
+	} while ((num /= base) != 0);
+
+	efi_reverse_string(out_buf, out_buf + i - 1);
+	out_buf[i] = '\0';
+
+	return i;
+}
+
+extern const unsigned char kernel_elf_start[];
+
+/* NOTE: This assumes the kernel is compiled as a 64-bit ELF */
+
+/* Load a program into memory an ELF's Program Header Table */
+static efi_status_t load_pht(efi_boot_services_t *gBS, 
+			     struct efi_memory_attribute_protocol *mattr,
+			     struct elf64_hdr *hdr)
+{
+	Elf64_Off phoff = hdr->e_phoff;
+	Elf64_Half ph_entry_size = hdr->e_phentsize;
+	Elf64_Half pht_num_entries = hdr->e_phnum;
+
+	for (Elf64_Half i = 0; i < pht_num_entries; i++) {
+		struct elf64_phdr *phdr = (struct elf64_phdr *)(kernel_elf_start + phoff + i * ph_entry_size);
+		if (phdr->p_type != PT_LOAD)
+			continue;
+
+		efi_phys_addr_t base = ALIGN(phdr->p_paddr, EFI_PAGE_SIZE);
+		u64 pages = EFI_SIZE_TO_PAGES(phdr->p_memsz + (phdr->p_paddr - base));
+
+		if (phdr->p_memsz == 0)
+			continue;
+
+		efi_status_t status = gBS->AllocatePages(
+			AllocateAddress, EfiLoaderCode,
+			pages, &base);
+
+		if (EFI_ERROR(status))
+			return status;
+
+		/* Clear RO before writing, XP before jumping */
+		if (mattr) {
+			status = mattr->ClearMemoryAttributes(
+				mattr, base, pages * EFI_PAGE_SIZE, 
+				EFI_MEMORY_XP | EFI_MEMORY_RO);
+			if (EFI_ERROR(status))
+				return status;
+		}
+		
+		memcpy((void *)phdr->p_paddr, kernel_elf_start + phdr->p_offset, phdr->p_filesz);
+		memset((void *)phdr->p_paddr + phdr->p_filesz, 0, phdr->p_memsz - phdr->p_filesz);
+	}
+	return EFI_SUCCESS;
+}
+
+static bool elf_valid(struct elf64_hdr *hdr)
+{
+	/* validate magic number and class */
+	if (unlikely(hdr == NULL || memcmp(hdr->e_ident, ELFMAG, SELFMAG)))
+		return false;   // not an ELF file
+	if (unlikely(hdr->e_ident[EI_CLASS] != ELFCLASS64))
+		return false;   // invalid class
+	return true;
+}
+
+void *load_kernel(struct efi_boot_services *gBS, struct efi_memory_attribute_protocol *mattr)
+{
+	struct elf64_hdr *hdr = (struct elf64_hdr *)kernel_elf_start;
+	if (likely(elf_valid(hdr))) {
+		if (EFI_ERROR(load_pht(gBS, mattr, hdr)))
+			return NULL;
+		return (void *)hdr->e_entry;
+	}
+	return NULL;
+}
+
+void insert_e820_entry(struct e820_table *table, u64 addr, u64 size, enum e820_type type);
+
+/* Convert a memory map obtained from UEFI's GetMemoryMap to an E820 Memory Map */
+void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out)
+{
+	memset(out, 0, sizeof(struct e820_table));
+	
+	u64 uefi_entries = mmap->size / mmap->descriptorSize;
+	u8 *map = (u8 *)mmap->memoryMap;
+	for (u64 i = 0; i < uefi_entries ; i++) {
+		efi_memory_descriptor *desc = (efi_memory_descriptor *)(map + i * mmap->descriptorSize);
+		enum e820_type type;
+		u64 size = (u64)desc->NumberOfPages * EFI_PAGE_SIZE;
+		
+		switch (desc->Type) {
+		case EfiLoaderCode:
+		case EfiLoaderData:
+		case EfiBootServicesCode:
+		case EfiBootServicesData:
+		case EfiConventionalMemory:
+			if (desc->Attribute & EFI_MEMORY_WB)
+				type = E820_TYPE_RAM;
+			else
+				type = E820_TYPE_RESERVED;
+			break;
+		case EfiACPIReclaimMemory:
+			type = E820_TYPE_ACPI;
+			break;
+		case EfiACPIMemoryNVS:
+			type = E820_TYPE_NVS;
+			break;
+		case EfiPersistentMemory:
+			type = E820_TYPE_PMEM;
+			break;
+		case EfiUnusableMemory:
+			type = E820_TYPE_UNUSABLE;
+			break;
+		default:
+			type = E820_TYPE_RESERVED;
+			break;
+		}
+
+		insert_e820_entry(out, desc->PhysicalStart, size, type);
+	}
+}

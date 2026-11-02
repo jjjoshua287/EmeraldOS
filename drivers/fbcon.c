@@ -3,36 +3,55 @@
 
 #define EOF -1
 
-struct fbcon framebuffer_con;
+struct fbcon fbcon;
+
+static void fbcon_scroll(void)
+{
+	u32 *fb = (u32 *)fbcon.info.lfb_base;
+	u32 rows = fbcon.info.lfb_height / fbcon.font->height;
+	size_t row_px = (size_t)(fbcon.font->height) * fbcon.info.lfb_ppsl;
+
+	if (rows < 3)
+		return;
+
+	/* move text rows 2..rows-1 up into 1..rows-2 */
+	memmove(fb + row_px, fb + 2 * row_px, (rows - 2) * row_px * sizeof(u32));
+
+	/* clear the last text row */
+	for (size_t i = (rows - 1) * row_px; i < rows * row_px; i++)
+		fb[i] = 0;
+
+	fbcon.cursorY = (rows - 1) * fbcon.font->height;
+}
 
 void clear_framebuffer(struct screen_info *info)
 {
-        void *fb = (void *)info->lfb_base;
-        memset(fb, 0, info->lfb_size);
+	void *fb = (void *)info->lfb_base;
+	memset(fb, 0, info->lfb_size);
 }
 
 /* Initialize framebuffer console (fbcon) driver with screen info from EFI stub */
 void init_fbcon(struct screen_info *info)
 {
-        const struct font_desc *font = get_default_font();       
-        framebuffer_con.font = font;
-        framebuffer_con.info = *info;
-        framebuffer_con.cursorX = font->width;
-        framebuffer_con.cursorY = font->height;
+	const struct font_desc *font = get_default_font();       
+	fbcon.font = font;
+	fbcon.info = *info;
+	fbcon.cursorX = font->width;
+	fbcon.cursorY = font->height;
 
-        /* remove messages the EFI stub printed */
-        clear_framebuffer(info);
+	/* remove messages the EFI stub printed */
+	clear_framebuffer(info);
 }
 
 // draw a pixel
 void draw_pixel(struct screen_info *info, u64 x, u64 y, enum PxColor color)
 {
-        // Prevent drawing outside boundaries
-        if (x >= info->lfb_width || y >= info->lfb_height)
-                return;
+	// Prevent drawing outside boundaries
+	if (x >= info->lfb_width || y >= info->lfb_height)
+		return;
 
-        u32 *fb = (u32 *)info->lfb_base;
-        fb[(y * info->lfb_ppsl) + x] = color;
+	u32 *fb = (u32 *)info->lfb_base;
+	fb[(y * info->lfb_ppsl) + x] = color;
 }
 
 // draw rectangle
@@ -49,67 +68,70 @@ void draw_filled_rect(struct screen_info *info, u64 x, u64 y, u64 w, u64 h, enum
 
     u32 *fb = (u32 *)info->lfb_base;
     for (u64 row = y; row < end_y; row++) {
-        u64 row_offset = row * info->lfb_ppsl;
-        for (u64 col = x; col < end_x; col++) {
-            fb[row_offset + col] = color;
-        }
+	u64 row_offset = row * info->lfb_ppsl;
+	for (u64 col = x; col < end_x; col++) {
+	    fb[row_offset + col] = color;
+	}
     }
 }
 
 void draw_char(char c, u64 x, u64 y, enum PxColor color)
 {
-        const u8 *glyph = &font_vga_8x16.data[(u8)c * font_vga_8x16.height];
-        for (u32 row = 0; row < font_vga_8x16.height; row++) {
-                u8 bits = glyph[row];
-                for (u32 col = 0; col < font_vga_8x16.width; col++) {
-                        if (bits & (0x80 >> col))
-                                draw_pixel(&framebuffer_con.info, x + col, y + row, color);
-                }
-        }
+	const u8 *glyph = &font_vga_8x16.data[(u8)c * font_vga_8x16.height];
+	for (u32 row = 0; row < font_vga_8x16.height; row++) {
+		u8 bits = glyph[row];
+		for (u32 col = 0; col < font_vga_8x16.width; col++) {
+			if (bits & (0x80 >> col))
+				draw_pixel(&fbcon.info, x + col, y + row, color);
+		}
+	}
 }
 
 void fbcon_write(char c)
 {
-        switch (c) {
-                case '\0':
-                        break;
+	if (fbcon.cursorY + fbcon.font->height > fbcon.info.lfb_height)
+		fbcon_scroll();
 
-                case '\n':
-                        framebuffer_con.cursorX = framebuffer_con.font->width;
-                        framebuffer_con.cursorY += framebuffer_con.font->height;
-                        break;
+	switch (c) {
+		case '\0':
+			break;
 
-                case '\t':
-                        framebuffer_con.cursorX += (framebuffer_con.font->width * 8);
-                        break;
+		case '\n':
+			fbcon.cursorX = fbcon.font->width;
+			fbcon.cursorY += fbcon.font->height;
+			break;
 
-                case '\b':
-                        draw_char(' ', framebuffer_con.cursorX -= framebuffer_con.font->width, framebuffer_con.cursorY, BLACK);
-                        break;
+		case '\t':
+			fbcon.cursorX += (fbcon.font->width * 8);
+			break;
 
-                case '\r':
-                        framebuffer_con.cursorX = framebuffer_con.font->width;
-                        break;
+		case '\b':
+			draw_char(' ', fbcon.cursorX -= fbcon.font->width, fbcon.cursorY, BLACK);
+			break;
 
-                case '\f':
-                        // this is a form feed sequence, but there's currently no form to feed.
-                        framebuffer_con.cursorY += framebuffer_con.font->height;
-                        break;
+		case '\r':
+			fbcon.cursorX = fbcon.font->width;
+			break;
 
-                case '\v':
-                        framebuffer_con.cursorY += (framebuffer_con.font->height * 8);
-                        break;
+		case '\f':
+			// this is a form feed sequence, but there's currently no form to feed.
+			fbcon.cursorY += fbcon.font->height;
+			break;
 
-                default:
-                        draw_char(c, framebuffer_con.cursorX, framebuffer_con.cursorY, WHITE);
-                        framebuffer_con.cursorX += framebuffer_con.font->width;
-                        break;
-        }
+		case '\v':
+			fbcon.cursorY += (fbcon.font->height * 8);
+			break;
+
+		default:
+			draw_char(c, fbcon.cursorX, fbcon.cursorY, WHITE);
+			fbcon.cursorX += fbcon.font->width;
+			break;
+	}
 }
 
 void fbcon_clear()
 {
-        clear_framebuffer(&framebuffer_con.info);
-        framebuffer_con.cursorX = framebuffer_con.font->width;
-        framebuffer_con.cursorY = framebuffer_con.font->height;
+	clear_framebuffer(&fbcon.info);
+	fbcon.cursorX = fbcon.font->width;
+	fbcon.cursorY = fbcon.font->height;
 }

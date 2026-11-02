@@ -1,48 +1,31 @@
-#include <emerald/runtime.h>
 #include <emerald/kernel.h>
-#include <emerald/fbcon.h>
+#include <emerald/runtime.h>>
 #include <emerald/printk.h>
 
 #include <asm/setup.h>
 
+#if CFG_TEST
 #include "tests.h"
+#endif
 
-/* temporary function for logging progress of kernel */
-static void log_progress()
+int kernel_main(struct boot_info *boot)
 {
-        printk("================ Current Progress ==================\n");
-        printk(" 1. Working Interrupt Handlers for CPU exceptions\n");
-        printk(" 2. Validated RSDT/XSDT\n");
-        printk(" 3. Use the Kernel's stack instead of UEFI's stack.\n");
-}
+	printk("EmeraldOS Kernel v%s\n\n", KERNEL_VERSION);
+	printk("Hello from ELF Kernel!\n");
+	printk("Hello from virtual address: %#p", &kernel_main);
+	
+	#if CFG_TEST
+	run_dev_tests();
+	#endif
 
-int kernel_main()
-{
-        printk("EmeraldOS Kernel v%s\n\n", KERNEL_VERSION);
-        log_progress();
-        printk("\n");
-        run_dev_tests();
-
-        #if CFG_PANIC
-        __asm__ volatile("ud2");
-        #endif
-
-        while (1);
-        return 0;
+	while (1);
+	return 0;
 }
 
 // entry point into kernel, ExitBootServices should be called before entering this
-int start_kernel(void)
+int start_kernel(struct boot_info *boot)
 {
-        setup_gdt();
-        setup_idt();
-#ifdef CFG_INIT_FBCON_EARLY
-        init_fbcon(&boot.info);
-        acpi_boot_init(&boot);
-#else
-        acpi_boot_init(&boot);
-        init_fbcon(&boot.info);
-#endif
-        kernel_main();
-        return 0;
+	setup_arch(boot);
+	kernel_main(boot);
+	return 0;
 }

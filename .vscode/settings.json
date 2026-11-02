@@ -1,5 +1,8 @@
 {
     "C_Cpp.default.cStandard": "c23",
+    "editor.insertSpaces": false,
+    "editor.tabSize": 8,
+    "editor.detectIndentation": false,
 
     // Configure the order of elements to match kernel-doc hierarchy
     "doxdocgen.generic.order": [

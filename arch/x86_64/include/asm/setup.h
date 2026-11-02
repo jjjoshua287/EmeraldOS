@@ -3,11 +3,10 @@
 
 #include <emerald/runtime.h>
 
-/* Assembly stub to reload segment selectors. */
-extern void reload_segments(void);
-
+/* setup_gdt and setup_idt are called by the architecture-specific entry point */
 void setup_gdt(void);
 void setup_idt(void);
-void acpi_boot_init(struct boot_info *boot);
+
+void setup_arch(struct boot_info *boot);
 
 #endif /* X86_64_SETUP_H */

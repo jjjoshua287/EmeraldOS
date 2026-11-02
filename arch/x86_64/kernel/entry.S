@@ -1,7 +1,6 @@
 .extern handle_interrupt
-/* shared logic between all exception handlers */
-exc_wrapper:
-    /* push registers */
+
+.macro pushall
     push %rdi
     push %rsi
     push %rdx
@@ -17,14 +16,9 @@ exc_wrapper:
     push %r13
     push %r14
     push %r15
+.endm
 
-    /* enter kernel */
-    mov %rsp, %rcx  /* frame pointer arg */
-    sub $32, %rsp   /* Window x64 ABI requires 32 bytes shadow space for calls */
-    call handle_interrupt
-    add $32, %rsp   /* restore rsp */
-
-    /* pop registers */
+.macro popall
     pop %r15
     pop %r14
     pop %r13
@@ -40,6 +34,15 @@ exc_wrapper:
     pop %rdx
     pop %rsi
     pop %rdi
+.endm
+
+/* shared logic between all exception handlers */
+exc_wrapper:
+    pushall
+    /* enter kernel */
+    mov %rsp, %rdi  /* frame pointer arg */
+    call handle_interrupt
+    popall
 
     /* discard vector + error code */
     add $16, %rsp
@@ -68,6 +71,39 @@ asm_irq_\vec:
     jmp exc_wrapper
 .endm
 
+/* Macro for ISRs with thier own handler (no err) */
+.macro ISR_NOERR_HANDLED name, vec
+    .global asm_exc_\name
+    .extern handle_\name
+asm_exc_\name:
+    push $0
+    push $\vec
+
+    pushall
+    mov %rsp, %rdi
+    call handle_\name
+    popall
+
+    add $16, %rsp
+    iretq
+.endm
+
+/* Macro for ISRs with thier own handler */
+.macro ISR_ERR_HANDLED name, vec
+    .global asm_exc_\name
+    .extern handle_\name
+asm_exc_\name:
+    push $\vec
+    
+    pushall
+    mov %rsp, %rdi
+    call handle_\name
+    popall
+    
+    add $16, %rsp
+    iretq
+.endm
+
 .macro ISR_RESERVED vec
     ISR_NOERR reserved_vector_\vec, \vec
 .endm
@@ -79,7 +115,7 @@ ISR_NOERR nmi,                          2
 ISR_NOERR breakpoint,                   3
 ISR_NOERR overflow,                     4
 ISR_NOERR bound_range_exceeded,         5
-ISR_NOERR invalid_opcode,               6
+ISR_NOERR_HANDLED invalid_opcode,       6
 ISR_NOERR device_not_available,         7
 ISR_ERR   double_fault,                 8
 ISR_NOERR coproc_segment_overrun,       9
@@ -87,7 +123,7 @@ ISR_ERR   invalid_tss,                  10
 ISR_ERR   segment_not_present,          11
 ISR_ERR   stack_segment_fault,          12
 ISR_ERR   general_protection_fault,     13
-ISR_ERR   page_fault,                   14
+ISR_ERR_HANDLED   page_fault,           14
 ISR_RESERVED 15
 ISR_NOERR x87_float_point_exception,    16
 ISR_ERR   alignment_check,              17

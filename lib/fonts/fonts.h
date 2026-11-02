@@ -7,8 +7,8 @@
 #define FONT_EXTRA_WORDS 4
 
 struct font_data {
-        unsigned int extra[FONT_EXTRA_WORDS];
-        unsigned char data[];
+	unsigned int extra[FONT_EXTRA_WORDS];
+	unsigned char data[];
 } __packed;
 
 // Built-in fonts

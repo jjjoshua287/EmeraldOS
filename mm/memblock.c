@@ -1,0 +1,581 @@
+#include <emerald/types.h>
+#include <emerald/limits.h>
+#include <emerald/errno.h>
+#include <emerald/minmax.h>
+#include <emerald/align.h>
+#include <emerald/string.h>
+#include <emerald/panic.h>
+#include <emerald/printk.h>
+#include <emerald/memblock.h>
+#include <emerald/mm.h>
+
+#include <asm/bug.h>
+#include <asm/pages.h>
+
+static struct memblock_region memblock_mem_init_regions[MEMBLOCK_INIT_REGIONS];
+static struct memblock_region memblock_rerserved_init_regions[MEMBLOCK_INIT_REGIONS];
+
+struct memblock memblock = {
+	.memory.regions = memblock_mem_init_regions,
+	.memory.max = MEMBLOCK_INIT_REGIONS,
+	.memory.name = "memory",
+	
+
+	.reserved.regions = memblock_rerserved_init_regions,
+	.reserved.max = MEMBLOCK_INIT_REGIONS,
+	.reserved.name = "reserved",
+
+	.curr_limit = MEMBLOCK_ALLOC_ANYWHERE,
+};
+
+bool memblock_debug = false;
+bool memblock_can_resize = false;
+
+static inline const char *memblock_type_name(struct memblock_type *type)
+{
+	if (type == &memblock.memory)
+		return "memory";
+	else if (type == &memblock.reserved)
+		return "reserved";
+	else
+		return "unknown";
+}
+
+/**
+ * __next_mem_range - get the next gap in between two memory types
+ * @idx: ptr to u64 loop variable
+ * @type_a: ptr to the first memory type
+ * @type_b: ptr to the second memory type
+ * @out_start: ptr to the physical address where the gap starts
+ * @out_end: ptr to the physical address where the gap ends
+ * 
+ * This serves as a next function for for_each_free_range() style macros.
+ * Find the next gap starting from *@idx, fill in the parameters, and 
+ * update *@idx for the next iteration.
+ * 
+ * The lower 32 bits of *@idx contains the index into type_a and
+ * the upper 32 bits of *@idx contains the index into type_b.
+ */
+void __next_mem_range(u64 *idx, struct memblock_type *type_a, 
+		      struct memblock_type *type_b, phys_addr_t *out_start,
+		      phys_addr_t *out_end)
+{
+	int idx_a = *idx & 0xFFFFFFFF;
+	int idx_b = *idx >> 32;
+
+	for (; idx_a < type_a->count; idx_a++) {
+		struct memblock_region *rgn_a = &type_a->regions[idx_a];
+		phys_addr_t start_a = rgn_a->base;
+		phys_addr_t end_a = rgn_a->base + rgn_a->size;
+
+		for (; idx_b < type_b->count + 1; idx_b++) {
+			struct memblock_region *rgn_b = &type_b->regions[idx_b];
+			phys_addr_t gap_start = (idx_b) ? 
+						rgn_b[-1].base + rgn_b[-1].size : 0;
+			phys_addr_t gap_end = (idx_b < type_b->count) ?
+					      rgn_b->base : PHYS_ADDR_MAX;
+
+			/* idx_b advanced past idx_a. break to increment idx_a */
+			if (gap_start >= end_a)
+				break;
+			if (start_a >= gap_end)
+				continue;
+			
+			/* the ranges intersect, we're done */
+			*out_start = max(start_a, gap_start);
+			*out_end = min(end_a, gap_end);
+
+			/* advance the region that ends first for next iter. */
+			if (end_a <= gap_end)
+				idx_a++;
+			else
+				idx_b++;
+			*idx = (u32)idx_a | (u64)idx_b << 32;
+			return;
+		}
+	}
+	/* signal end of iteration */
+	*idx = ULLONG_MAX;
+}
+
+/**
+ * memblock_find_free_area - find a contiguous area of free memory
+ * @size: size of the area
+ * @align: alignment boundary of the area
+ * @start: start address
+ * @end: end address
+ * 
+ * finds a contiguous area of memory in the 'memory' type that isn't reserved
+ * and is aligned to @align within [start, end).
+ * 
+ * Returns:
+ * A physical address of the found area on success, 0 on failure.
+ */
+static phys_addr_t memblock_find_free_area(phys_addr_t size, phys_addr_t align,
+				   phys_addr_t start, phys_addr_t end)
+{
+	u64 idx;
+	phys_addr_t range_start, range_end;
+
+	for_each_free_mem_range(idx, &range_start, &range_end) {
+		if (range_start < start)
+			continue;
+		if (range_end > end)
+			break;
+
+		phys_addr_t base = ALIGN(range_start, align);
+		if (base + size <= range_end)
+			return base;
+	}
+	return 0;
+}
+
+/**
+ * memblock_double_array - double the size of a memblock_region array
+ * @type: memblock_type of the regions array being doubled
+ * @new_area_start: start of memory range to avoid overlap with
+ * @new_area_size: size of memory range to avoid overlap with
+ * 
+ * Returns:
+ * 0 on success, -errno on failure
+ */
+static int memblock_double_array(struct memblock_type *type, 
+				 phys_addr_t new_area_start,
+				 phys_addr_t new_area_size)
+{
+	/* this function should only be called if we can resize */
+	if (!memblock_can_resize)
+		panic("memblock: attempted to resize array!", NULL);
+	
+	/* calculate doubled size */
+	phys_addr_t old_size = type->max * sizeof(struct memblock_region);
+	phys_addr_t new_size = old_size << 1;
+
+	/* align each on a page boundary so they can be completely freed later */
+	phys_addr_t old_alloc_size = PAGE_ALIGN(old_size);
+	phys_addr_t new_alloc_size = PAGE_ALIGN(new_size);
+
+	/* only exclude the range if trying to double reserved.regions */
+	if (type != &memblock.reserved)
+		new_area_start = new_area_size = 0;
+	phys_addr_t area = memblock_find_free_area(new_alloc_size, PAGE_SIZE, 
+						   new_area_start + new_area_size,
+						   memblock.curr_limit);
+	
+	if (!area && new_area_size)
+		area = memblock_find_free_area(new_alloc_size, PAGE_SIZE, 0, 
+					       min(new_area_start, memblock.curr_limit));
+	
+	if (!area) {
+		printk("memblock: failed to double %s array from %ld to %ld entries!\n",
+			type->name, type->max, type->max << 1);
+		return -ENOMEM;
+	} else {
+		memblock_dbg("memblock: successfully doubled %s array from %ld to %ld entries\n",
+			      type->name, type->max, type->max << 1);
+	}
+
+	/* we've found space for the new array */
+	struct memblock_region *old_array = type->regions;
+	struct memblock_region *new_array = __va(area);
+
+	bool is_static = (type->max == MEMBLOCK_INIT_REGIONS);
+	
+	memcpy(new_array, type->regions, old_size);
+	memset(new_array + type->max, 0, old_size);
+	type->regions = new_array;
+	type->max <<= 1;
+
+	/* free the old array. it's unnecessary if it's the static one */
+	if (!is_static)
+		memblock_free(old_array, old_alloc_size);
+	return memblock_reserve_kern(area, new_alloc_size);
+}
+
+/**
+ * memblock_merge_regions - merge neighboring compatible regions
+ * @type: memblock type to scan
+ * @start_rgn: start scanning from (@start_rgn - 1)
+ * @end_rgn: end scanning at (@end_rgn - 1)
+ * 
+ * Scan @type and merge neighboring compatible regions in [@start_rgn - 1, @end_rgn)
+ */
+static void memblock_merge_regions(struct memblock_type *type, 
+				   unsigned long start_rgn, 
+				   unsigned long end_rgn)
+{
+	int i = 0;
+	if (start_rgn)
+		i = start_rgn - 1;
+	end_rgn = min(end_rgn, type->count - 1);
+
+	while (i < end_rgn) {
+		struct memblock_region *this = &type->regions[i];
+		struct memblock_region *next = &type->regions[i + 1];
+		if ((this->base + this->size != next->base) || 
+		    (this->flags != next->flags)) {
+			i++;
+			BUG_ON(this->base + this->size > next->base);
+			continue;
+		}
+		this->size += next->size;
+		
+		/* shift entries back by one */
+		size_t bytes = (type->count - (i + 2)) * sizeof(struct memblock_region);
+		memmove(next, next + 1, bytes);
+		type->count--;
+		end_rgn--;
+	}
+}
+
+/**
+ * memblock_insert_region - insert new memblock region
+ * @type: memblock type to insert into
+ * @idx: index for insertion point
+ * @base: physical base address of the new region
+ * @size: size of the new region
+ * @flags: flags of the new region
+ * 
+ * Insert new memblock region [@base, @base + @size) into @type at @idx.
+ * @type must already have extra space for the new region
+ */
+static void memblock_insert_region(struct memblock_type *type, int idx, phys_addr_t base, 
+			   phys_addr_t size, enum memblock_flags flags)
+{
+	struct memblock_region *rgn = &type->regions[idx];
+
+	BUG_ON(type->count >= type->max);
+	memmove(rgn + 1, rgn, (type->count - idx) * sizeof(*rgn));
+	rgn->base = base;
+	rgn->size = size;
+	rgn->flags = flags;
+
+	type->count++;
+	type->total_size += size;
+}
+
+/* adjust *@size so that @base + *@size doesn't overflow. returns the new size */
+static inline phys_addr_t memblock_cap_size(phys_addr_t base, phys_addr_t *size)
+{
+	return *size = min(*size, PHYS_ADDR_MAX - base);
+}
+
+/**
+ * memblock_add_range - add new memblock region
+ * @type: memblock type to add new region to
+ * @base: physical base address of the new region
+ * @size: size of the new region
+ * @flags: flags of the new region
+ * 
+ * Add new memblock region [@base, @base + @size) into @type.
+ * all neighbouring compatible regions in @type are merged after the addition.
+ * 
+ * Returns:
+ * 0 on success, -errno on failure.
+ */
+int memblock_add_range(struct memblock_type *type, phys_addr_t base, phys_addr_t size, 
+		       enum memblock_flags flags)
+{
+	int idx, nr_new;
+	int start_rgn = -1, end_rgn = 0;
+	bool insert = false;
+	struct memblock_region *rgn;
+	phys_addr_t obase = base;
+	phys_addr_t end = base + memblock_cap_size(base, &size);
+
+	if (!size)
+		return 0;
+
+	/* special case for empty array */
+	if (type->regions[0].size == 0) {
+		WARN_ON(type->count != 0 || type->total_size);
+		type->regions[0].base = base;
+		type->regions[0].size = size;
+		type->regions[0].flags = flags;
+		type->total_size = size;
+		type->count = 1;
+		return 0;
+	}
+
+repeat:
+	/*
+	 * The following is executed twice. The first time with %false @insert
+	 * to count the number of regions needed for the range and the second
+	 * time with %true @insert to actually insert them.
+	 */
+	base = obase;
+	nr_new = 0;
+
+	for_each_memblock_type(idx, type, rgn) {
+		phys_addr_t rbase = rgn->base;
+		phys_addr_t rend = rgn->base + rgn->size;
+		if (rbase >= end)
+			break;
+		if (rend <= base)
+			continue;
+		/*
+		 * @rgn overlaps. If it separates the lower portion of the new
+		 * area, insert that portion
+		 */
+		if (rbase > base) {
+			WARN_ON(flags != rgn->flags);
+			nr_new++;
+			if (insert) {
+				if (start_rgn == -1)
+					start_rgn = idx;
+				end_rgn = idx + 1;
+				memblock_insert_region(type, idx++, base, rbase - base, flags);
+			}
+		}
+		/* the area before @rend has been resolved. */
+		base = min(rend, end);
+	}
+
+	/* insert the remaining portion */
+	if (base < end) {
+		nr_new++;
+		if (insert) {
+			if (start_rgn == -1)
+				start_rgn = idx;
+			end_rgn = idx + 1;
+			memblock_insert_region(type, idx, base, end - base, flags);
+		}
+	}
+
+	if (!nr_new)
+		return 0;
+
+	if (!insert) {
+		/* resize the array if we don't have enough space */
+		while (type->count + nr_new > type->max) {
+			if (memblock_double_array(type, obase, size) < 0)
+				return -ENOMEM;
+		}
+		insert = true;
+		goto repeat;
+	} else {
+		memblock_merge_regions(type, start_rgn, end_rgn);
+		return 0;
+	}
+}
+
+/**
+ * memblock_add - add new memblock region
+ * @base: physical base address of the new region
+ * @size: size of the new region
+ * 
+ * Add new memblock region [@base, @base + @size) to the "memory" type.
+ * See memblock_add_range() for more details.
+ * 
+ * Returns:
+ * 0 on success, -errno on failure.
+ */
+int memblock_add(phys_addr_t base, phys_addr_t size)
+{
+	struct memblock_type *type = &memblock.memory;
+	phys_addr_t end = base + size - 1;
+	
+	memblock_dbg("memblock_add: [0x%016llx-0x%016llx]\n", base, end);
+
+	return memblock_add_range(type, base, size, 0);
+}
+
+int __memblock_reserve(phys_addr_t base, phys_addr_t size, enum memblock_flags flags)
+{
+	struct memblock_type *type = &memblock.reserved;
+	phys_addr_t end = base + size - 1;
+
+	memblock_dbg("memblock_reserve: [0x%016llx-0x%016llx] flags = %x\n", 
+		     base, end, flags);
+
+	return memblock_add_range(type, base, size, flags);
+}
+
+/**
+ * memblock_discard - remove a memory region from a memory type
+ * @type: memory type of the victim region
+ * @idx: index of the victim region
+ * 
+ * removes the region at type->regions[idx] and shifts elements down
+ */
+static void memblock_discard(struct memblock_type *type, int idx)
+{
+	struct memblock_region *rgn = &type->regions[idx];
+	type->total_size -= rgn->size;
+	memset(rgn, 0, sizeof(*rgn));
+
+	if (type->count == 0)
+		return;
+	
+	BUG_ON(type->count >= type->max);
+
+	if (idx != type->count - 1)
+		memmove(rgn, rgn + 1, (type->count - (idx + 1)) * sizeof(*rgn));
+	type->count--;
+}
+
+/**
+ * memblock_split_region - make a hole in a memblock region
+ * @type: memblock type
+ * @idx: index of victim region
+ * @base: start address of range
+ * @end: end address of range
+ *
+ * splits the region into: 
+ * 	- [rbase, @base) at @idx
+ * 	- [@end, rend) at @idx + 1
+ * 
+ * Returns:
+ * 0 on success, -errno on failure
+ */
+static int memblock_split_region(struct memblock_type *type, int idx, 
+				 phys_addr_t base, phys_addr_t end)
+{
+	struct memblock_region *rgn = &type->regions[idx];
+        phys_addr_t rend = rgn->base + rgn->size;
+	phys_addr_t rsize = rgn->size;
+
+        if (type->count + 1 > type->max) {
+                if (memblock_double_array(type, base, end - base) < 0)
+                        return -ENOMEM;
+                rgn = &type->regions[idx];
+        }
+
+        /* Shrink lower fragment and insert high fragment */
+        rgn->size = base - rgn->base;
+	type->total_size -= (rsize - rgn->size);
+	memblock_insert_region(type, idx + 1, end, rend - end, rgn->flags);
+        return 0;
+}
+
+/**
+ * memblock_remove_range - remove new memblock region
+ * @type: memblock type to remove region from
+ * @base: physical base address of the victim region
+ * @size: size of the victim region
+ * 
+ * Removes a memblock region [@base, @base + @size) from @type.
+ * 
+ * Returns:
+ * 0 on success, -errno on failure.
+ */
+int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+{
+	int idx;
+	struct memblock_region *rgn;
+	phys_addr_t end = base + memblock_cap_size(base, &size);
+
+	if (!size || type->regions[0].size == 0)
+		return 0;
+	
+	for_each_memblock_type(idx, type, rgn) {
+		phys_addr_t rbase = rgn->base;
+		phys_addr_t rsize = rgn->size;
+		phys_addr_t rend = rgn->base + rgn->size;
+
+		if (rbase >= end)
+			break;
+		if (rend <= base)
+			continue;
+
+		/* @rgn is guarenteed to overlap */
+
+		/* split @rgn if the range is inside @rgn */
+		if (rbase < base && rend > end) {
+			return memblock_split_region(type, idx, base, end);
+		}
+
+		/* range overlaps the right section */
+		if (rbase < base) {
+			rgn->size = base - rbase;
+		} else if (rend <= end) {
+			/* entire region inside range */
+			memblock_discard(type, idx--);
+			continue;
+		} else {
+			/* range overlaps the higher section */
+			rgn->base = end;
+			rgn->size = rend - end;
+		}
+		type->total_size -= (rsize - rgn->size);
+	}
+	return 0;
+}
+
+/**
+ * memblock_remove - remove a memory region
+ * @base: physical base address of the victim region
+ * @size: size of the new region
+ * 
+ * Remove memblock region [@base, @base + @size) from the "memory" type.
+ * See memblock_remove_range() for more details.
+ * 
+ * Returns:
+ * 0 on success, -errno on failure.
+ */
+int memblock_remove(phys_addr_t base, phys_addr_t size)
+{
+	struct memblock_type *type = &memblock.memory;
+	phys_addr_t end = base + size - 1;
+	
+	memblock_dbg("memblock_remove: [0x%016llx-0x%016llx]\n", base, end);
+
+	return memblock_remove_range(type, base, size);
+}
+
+void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
+			  phys_addr_t start, phys_addr_t end)
+{
+	if (end == MEMBLOCK_ALLOC_ACCESSIBLE)
+		end = memblock.curr_limit;
+
+	phys_addr_t base = memblock_find_free_area(size, align, start, end);
+	if (base == 0)
+		return NULL;
+	if (memblock_reserve_kern(base, size) < 0)
+		return NULL;
+	return phys_to_virt(base);
+}
+
+void memblock_phys_free(phys_addr_t base, phys_addr_t size)
+{
+	memblock_remove_range(&memblock.reserved, base, size);
+}
+
+void memblock_allow_resize(void)
+{
+	memblock_can_resize = true;
+}
+
+static void memblock_dump(struct memblock_type *type)
+{
+	int i = 0;
+	struct memblock_region *rgn;
+	printk("%s.count = 0x%lx\n", type->name, type->count);
+
+	for_each_memblock_type(i, type, rgn) {
+		phys_addr_t base = rgn->base;
+		phys_addr_t size = rgn->size;
+		phys_addr_t end = rgn->base + size - 1;
+		
+		printk("%s[%#x]\t[0x%016llx-0x%016llx], 0x%016llx bytes flags: %#x\n",
+			type->name, i, base, end, size, rgn->flags);
+	}
+}
+
+static void __memblock_dump_all(void)
+{
+	printk("\nMemblock Configuration:\n");
+	printk("Current allocation limit: 0x%016llx\n", memblock.curr_limit);
+	printk(" memory size = %016llx    reserved memory size: %016llx\n",
+		memblock.memory.total_size, memblock.reserved.total_size);
+	
+	memblock_dump(&memblock.memory);
+	memblock_dump(&memblock.reserved);
+}
+
+void memblock_dump_all(void)
+{
+	if (memblock_debug)
+		__memblock_dump_all();
+}

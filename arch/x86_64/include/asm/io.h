@@ -5,7 +5,7 @@
 
 static inline void outb(unsigned char value, unsigned short port)
 {
-    asm volatile("outb %0, %1" :: "a"(value), "Nd"(port));
+	asm volatile("outb %0, %1" :: "a"(value), "Nd"(port));
 }
 
 #endif
