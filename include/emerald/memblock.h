@@ -148,8 +148,9 @@ static inline void memblock_set_curr_limit(phys_addr_t limit)
 	memblock.curr_limit = limit;
 }
 
-void memblock_allow_resize(void);
+void memblock_trim_memory(phys_addr_t align);
 
+void memblock_allow_resize(void);
 void memblock_dump_all(void);
 void test_memblock_visual(void);
 
@@ -193,5 +194,16 @@ void __next_mem_range(u64 *idx, struct memblock_type *type_a,
 #define for_each_free_mem_range(i, p_start, p_end)	\
 	__for_each_mem_range((i), &memblock.memory, &memblock.reserved,	\
 			     (p_start), (p_end))
+
+#define __for_each_memblock_region(type, rgn)	\
+	for (rgn = type.regions;	\
+	     rgn < (type.regions + type.count);	\
+	     rgn++)
+
+#define for_each_mem_region(rgn)	\
+	__for_each_memblock_region(memblock.memory, rgn)
+
+#define for_each_rsvd_region(rgn)	\
+	__for_each_memblock_region(memblock.reserved, rgn)
 
 #endif 	/* EMERALD_MEMBLOCK_H */

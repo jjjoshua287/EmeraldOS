@@ -90,6 +90,9 @@ int e820_memblock_setup(struct e820_table *table)
 			ret |= memblock_reserve(entry->addr, entry->size);
 	}
 
+	/* throw away partial pages */
+	memblock_trim_memory(PAGE_SIZE);
+
 	memblock_dump_all();
 	return ret;
 }

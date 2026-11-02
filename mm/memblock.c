@@ -392,13 +392,13 @@ int __memblock_reserve(phys_addr_t base, phys_addr_t size, enum memblock_flags f
 }
 
 /**
- * memblock_discard - remove a memory region from a memory type
+ * memblock_remove_region - remove a memory region from a memory type
  * @type: memory type of the victim region
  * @idx: index of the victim region
  * 
  * removes the region at type->regions[idx] and shifts elements down
  */
-static void memblock_discard(struct memblock_type *type, int idx)
+static void memblock_remove_region(struct memblock_type *type, int idx)
 {
 	struct memblock_region *rgn = &type->regions[idx];
 	type->total_size -= rgn->size;
@@ -490,7 +490,7 @@ int memblock_remove_range(struct memblock_type *type, phys_addr_t base, phys_add
 			rgn->size = base - rbase;
 		} else if (rend <= end) {
 			/* entire region inside range */
-			memblock_discard(type, idx--);
+			memblock_remove_region(type, idx--);
 			continue;
 		} else {
 			/* range overlaps the higher section */
@@ -540,6 +540,28 @@ void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
 void memblock_phys_free(phys_addr_t base, phys_addr_t size)
 {
 	memblock_remove_range(&memblock.reserved, base, size);
+}
+
+void memblock_trim_memory(phys_addr_t align)
+{
+	struct memblock_region *rgn;
+	for_each_mem_region(rgn) {
+		phys_addr_t orig_end = rgn->base + rgn->size;
+		phys_addr_t start = ALIGN(rgn->base, align);
+		phys_addr_t end = ALIGN_DOWN(orig_end, align);
+
+		if (start == rgn->base && end == orig_end)
+			continue;
+
+		if (start < end) {
+			rgn->base = start;
+			rgn->size = end - start;
+		} else {
+			memblock_remove_region(&memblock.memory, 
+					       rgn - memblock.memory.regions);
+			rgn--;
+		}
+	}
 }
 
 void memblock_allow_resize(void)
