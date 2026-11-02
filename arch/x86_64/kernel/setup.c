@@ -10,15 +10,23 @@
 extern unsigned char __kernel_start[];
 extern unsigned char __kernel_end[];
 
-void acpi_boot_init(void *sys_desc_ptr);
+extern u64 init_top_pgt[PT_ENTRIES];
+extern u64 early_top_pgt[PT_ENTRIES];
 
-/* this will do more in the future, for now it's currently a wrapper for acpi_boot_init */
+void acpi_boot_init(void *sys_desc_ptr);
 
 static void do_early_reserves(struct boot_info *boot)
 {
 	/* reserve the Real Mode / BIOS Area */
 	memblock_reserve(0, 1024 * 1024);
+
+	/* reserve the kernel image and the boot_info struct */
 	memblock_reserve_kern((phys_addr_t)__kernel_start, (phys_addr_t)(__kernel_end - __kernel_start));
+	memblock_reserve_kern(virt_to_phys(boot), sizeof(struct boot_info));
+	
+	/* reserve the boot page tables */
+	memblock_reserve_kern((phys_addr_t)init_top_pgt, PT_SIZE);
+	memblock_reserve_kern((phys_addr_t)early_top_pgt, PT_SIZE);
 }
 
 static inline void do_alloc_test()
@@ -32,7 +40,6 @@ void setup_arch(struct boot_info *boot)
 	do_early_reserves(boot);
 	e820_memblock_setup(&boot->mem);
 	memblock_set_curr_limit(EARLY_MAP_END);
-	do_alloc_test();
 
 	/* BUG: This function is commented out to avoid a #PF. it will resolved once I get to doing that. */
 	//acpi_boot_init(boot->rsdp);

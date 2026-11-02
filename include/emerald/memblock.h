@@ -150,9 +150,6 @@ static inline void memblock_set_curr_limit(phys_addr_t limit)
 
 void memblock_allow_resize(void);
 
-void memblock_dump_all(void);
-void test_memblock_visual(void);
-
 void __next_mem_range(u64 *idx, struct memblock_type *type_a, 
 		      struct memblock_type *type_b, phys_addr_t *out_start,
 		      phys_addr_t *out_end);
@@ -193,5 +190,7 @@ void __next_mem_range(u64 *idx, struct memblock_type *type_a,
 #define for_each_free_mem_range(i, p_start, p_end)	\
 	__for_each_mem_range((i), &memblock.memory, &memblock.reserved,	\
 			     (p_start), (p_end))
+
+void memblock_dump_all(void);
 
 #endif 	/* EMERALD_MEMBLOCK_H */

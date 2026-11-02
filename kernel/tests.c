@@ -1,4 +1,4 @@
-#ifdef CFG_TEST
+#if CFG_TEST
 
 #include <stddef.h>
 #include <emerald/printk.h>

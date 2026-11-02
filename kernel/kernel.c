@@ -1,14 +1,12 @@
-#include <emerald/runtime.h>
 #include <emerald/kernel.h>
+#include <emerald/runtime.h>>
 #include <emerald/printk.h>
-
-#if CFG_PANIC
-#include <asm/bug.h>
-#endif
 
 #include <asm/setup.h>
 
+#if CFG_TEST
 #include "tests.h"
+#endif
 
 int kernel_main(struct boot_info *boot)
 {
@@ -20,10 +18,6 @@ int kernel_main(struct boot_info *boot)
 	run_dev_tests();
 	#endif
 
-	#if CFG_PANIC
-	BUG();
-	#endif
-
 	while (1);
 	return 0;
 }
@@ -32,8 +26,6 @@ int kernel_main(struct boot_info *boot)
 int start_kernel(struct boot_info *boot)
 {
 	setup_arch(boot);
-	printk("e820 entries: %u\n", boot->mem.nr_entries);
-
 	kernel_main(boot);
 	return 0;
 }
