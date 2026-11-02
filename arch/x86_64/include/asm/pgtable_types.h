@@ -120,13 +120,13 @@ typedef struct { pteval_t pgprot; } pgprot_t;
 #define PAGE_READONLY		__pg(__PP |    0 | _USR | ___A | __NX |    0 |    0 |    0)
 #define PAGE_READONLY_EXEC	__pg(__PP |    0 | _USR | ___A |    0 |    0 |    0 |    0)
 
-#define _PAGE_KERNEL_RO		__pg(__PP |    0 |    0 | ___A | __NX |    0 |    0 | ___G)
-#define _PAGE_KERNEL_ROX	__pg(__PP |    0 |    0 | ___A |    0 |    0 |    0 | ___G)
-#define _PAGE_KERNEL		__pg(__PP | __RW |    0 | ___A | __NX | ___D |    0 | ___G)
-#define _PAGE_KERNEL_EXEC	__pg(__PP | __RW |    0 | ___A |    0 | ___D |    0 | ___G)
-#define _PAGE_KERNEL_NOCACHE	__pg(__PP | __RW |    0 | ___A | __NX | ___D |    0 | ___G | __NC)
-#define _PAGE_KERNEL_LARGE	__pg(__PP | __RW |    0 | ___A | __NX | ___D | __PS | ___G)
-#define _PAGE_KERNEL_LARGE_EXEC	__pg(__PP | __RW |    0 | ___A |    0 | ___D | __PS | ___G)
+#define _PAGE_KERNEL_RO		(__PP |    0 |    0 | ___A | __NX |    0 |    0 | ___G)
+#define _PAGE_KERNEL_ROX	(__PP |    0 |    0 | ___A |    0 |    0 |    0 | ___G)
+#define _PAGE_KERNEL		(__PP | __RW |    0 | ___A | __NX | ___D |    0 | ___G)
+#define _PAGE_KERNEL_EXEC	(__PP | __RW |    0 | ___A |    0 | ___D |    0 | ___G)
+#define _PAGE_KERNEL_NOCACHE	(__PP | __RW |    0 | ___A | __NX | ___D |    0 | ___G | __NC)
+#define _PAGE_KERNEL_LARGE	(__PP | __RW |    0 | ___A | __NX | ___D | __PS | ___G)
+#define _PAGE_KERNEL_LARGE_EXEC	(__PP | __RW |    0 | ___A |    0 | ___D | __PS | ___G)
 
 #define _PAGE_KERNEL_IO 	_PAGE_KERNEL
 #define _PAGE_KERNEL_IO_NOCACHE	_PAGE_KERNEL_NOCACHE
