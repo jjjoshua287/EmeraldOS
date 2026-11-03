@@ -7,7 +7,7 @@
 #include <emerald/memblock.h>
 
 static struct e820_table e820_table_init;
-static struct e820_table *e820_table = &e820_table_init;
+struct e820_table *e820_table = &e820_table_init;
 
 const char *e820_type_name(enum e820_type type)
 {
