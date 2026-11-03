@@ -44,6 +44,9 @@ typedef struct { pgdval_t pgd; } pgd_t;
 #define PGD_SIZE (1UL << PGD_SHIFT)
 #define PGD_MASK (~(PGD_SIZE - 1))
 
+#define MAX_PHYSMEM_BITS 46
+#define MAXMEM (1UL << MAX_PHYSMEM_BITS)
+
 /* Memory Map */
 #define L3_START_KERNEL 510
 

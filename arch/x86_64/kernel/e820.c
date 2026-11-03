@@ -1,5 +1,7 @@
 #include <asm/e820/types.h>
+
 #include <emerald/types.h>
+#include <emerald/pfn.h>
 #include <emerald/runtime.h>
 #include <emerald/string.h>
 #include <emerald/printk.h>
@@ -29,7 +31,7 @@ const char *e820_type_name(enum e820_type type)
 	}
 }
 
-void e820_print_table()
+void e820_print_table(void)
 {
 	u64 end_prev = 0;
 
@@ -52,7 +54,7 @@ void e820_print_table()
 }
 
 /* Merge adjacent regions */
-void e820_sanitize_table() 
+void e820_sanitize_table(void) 
 {
 	u32 w = 0;	/* index of the last kept entry */
 	/* If we only have 1 entry, don't sort it. */
@@ -93,7 +95,7 @@ void e820_memory_setup(struct e820_table *table)
 }
 
 /* handover the e820 memory map to memblock */
-int e820_memblock_setup()
+int e820_memblock_setup(void)
 {
 	int ret = 0;
 
@@ -110,4 +112,47 @@ int e820_memblock_setup()
 
 	memblock_dump_all();
 	return ret;
+}
+
+#define MAX_ARCH_PFN (MAXMEM >> PAGE_SHIFT)
+
+// find the largest page frame number available
+static unsigned long e820_end_pfn(unsigned long limit_pfn)
+{
+	unsigned long last_pfn = 0;
+	unsigned long max_arch_pfn = MAX_ARCH_PFN;
+
+	for (u32 i = 0; i < e820_table->nr_entries; i++) {
+		struct e820_entry *entry = &e820_table->entries[i];
+		if (entry->type != E820_TYPE_RAM && entry->type != E820_TYPE_ACPI)
+			continue;
+		
+		unsigned long start_pfn = PHYS_PFN(entry->addr);
+		unsigned long end_pfn = PHYS_PFN(entry->addr + entry->size);
+
+		if (start_pfn >= limit_pfn)
+			continue;
+		if (end_pfn > limit_pfn) {
+			last_pfn = limit_pfn;
+			break;
+		}
+		if (end_pfn > last_pfn)
+			last_pfn = end_pfn;
+	}
+
+	if (last_pfn > max_arch_pfn)
+		last_pfn = max_arch_pfn;
+
+	printk("last pfn = %#lx, max_pfn = %#lx\n", last_pfn, max_arch_pfn);
+	return last_pfn;
+}
+
+unsigned long e820_max_pfn(void)
+{
+	return e820_end_pfn(MAX_ARCH_PFN);
+}
+
+unsigned long e820_max_low_pfn(void)
+{
+	return e820_end_pfn(1UL << (32 - PAGE_SHIFT));
 }
