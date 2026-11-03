@@ -7,6 +7,7 @@
 extern struct e820_table *e820_table;
 
 /* Function prototypes for e820 functions called by the EmeraldOS Kernel */
+bool e820_mapped_any(u64 start, u64 end, enum e820_type type);
 
 const char *e820_type_name(enum e820_type type);
 void e820_print_table(void);

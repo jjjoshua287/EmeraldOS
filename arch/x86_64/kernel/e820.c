@@ -11,6 +11,23 @@
 static struct e820_table e820_table_init;
 struct e820_table *e820_table = &e820_table_init;
 
+/* 
+ * check if any part of (start, end) is mapped as type.
+ * NOTE: this assumes the e820 map is sorted in ascending order
+ */
+bool e820_mapped_any(u64 start, u64 end, enum e820_type type)
+{
+	for (u32 i = 0; i < e820_table->nr_entries; i++) {
+		struct e820_entry *entry = &e820_table->entries[i];
+		if (type != entry->type || entry->addr + entry->size <= start)
+			continue;
+		if (entry->addr >= end)
+			break;
+		return true;
+	}
+	return false;
+}
+
 const char *e820_type_name(enum e820_type type)
 {
 	switch (type) {
