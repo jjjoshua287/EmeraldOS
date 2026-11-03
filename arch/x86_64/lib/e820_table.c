@@ -37,4 +37,4 @@ void e820_insert_entry(struct e820_table *table, u64 addr, u64 size, enum e820_t
 	table->entries[idx].size = size;
 	table->entries[idx].type = type;
 	table->nr_entries++;
-};
+}

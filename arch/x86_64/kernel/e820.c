@@ -87,6 +87,9 @@ void e820_memory_setup(struct e820_table *table)
 	 */
 	memcpy(e820_table, table, sizeof(struct e820_table));
 	e820_sanitize_table();
+
+	printk("Firmware-provided physical RAM map:\n");
+	e820_print_table();
 }
 
 /* handover the e820 memory map to memblock */

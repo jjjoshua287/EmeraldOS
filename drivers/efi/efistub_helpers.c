@@ -114,8 +114,17 @@ void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out)
 		u64 size = (u64)desc->NumberOfPages * EFI_PAGE_SIZE;
 		
 		switch (desc->Type) {
-		case EfiLoaderCode:
+		case EfiReservedMemoryType:
+		case EfiRuntimeServicesCode:
+		case EfiRuntimeServicesData:
+		case EfiMemoryMappedIO:
+		case EfiMemoryMappedIOPortSpace:
+		case EfiPalCode:
+			type = E820_TYPE_RESERVED;
+			break;
+		
 		case EfiLoaderData:
+		case EfiLoaderCode:
 		case EfiBootServicesCode:
 		case EfiBootServicesData:
 		case EfiConventionalMemory:
@@ -123,6 +132,10 @@ void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out)
 				type = E820_TYPE_RAM;
 			else
 				type = E820_TYPE_RESERVED;
+			break;
+		
+		case EfiUnusableMemory:
+			type = E820_TYPE_UNUSABLE;
 			break;
 		case EfiACPIReclaimMemory:
 			type = E820_TYPE_ACPI;
@@ -133,12 +146,9 @@ void efi_mmap_to_e820(const struct hw_memory_map *mmap, struct e820_table *out)
 		case EfiPersistentMemory:
 			type = E820_TYPE_PMEM;
 			break;
-		case EfiUnusableMemory:
-			type = E820_TYPE_UNUSABLE;
-			break;
 		default:
-			type = E820_TYPE_RESERVED;
-			break;
+			/* EfiUnacceptedMemoryType falls here */
+			continue;
 		}
 
 		e820_insert_entry(out, desc->PhysicalStart, size, type);
