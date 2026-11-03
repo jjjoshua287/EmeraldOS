@@ -5,7 +5,10 @@
 #include <asm/pgtable_types.h>
 #include <emerald/compiler.h>
 
+extern pud_t level3_kernel_pgt[512];
+extern pmd_t level2_kernel_pgt[512];
 extern pgd_t init_top_pgt[];
+
 #define swapper_pgd_dir init_top_pgt
 
 void early_init_nx(void);
@@ -207,6 +210,11 @@ static inline bool pud_exec(pud_t pud)
 static inline bool pgd_present(pgd_t pgd)
 {
 	return pgd_flags(pgd) & _PAGE_PRESENT;
+}
+
+static unsigned long pgd_page_vaddr(pgd_t pgd)
+{
+	return (unsigned long)__va((unsigned long)pgd_val(pgd) & PTE_PFN_MASK);
 }
 
 /*

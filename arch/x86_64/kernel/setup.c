@@ -31,6 +31,14 @@ void setup_arch(struct boot_info *boot)
 {
 	do_early_reserves(boot);
 	e820_memory_setup(&boot->mem);
+
+	max_pfn = e820_max_pfn();
+	max_possible_pfn = max_pfn;
+	if (max_pfn > (1UL << (32 - PAGE_SHIFT)))
+		max_low_pfn = e820_max_low_pfn();
+	else
+		max_low_pfn = max_pfn;
+
 	e820_memblock_setup();
 	
 	memblock_set_curr_limit(EARLY_MAP_END);
