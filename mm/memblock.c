@@ -529,18 +529,46 @@ int memblock_remove(phys_addr_t base, phys_addr_t size)
 	return memblock_remove_range(type, base, size);
 }
 
-void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
-			  phys_addr_t start, phys_addr_t end)
+/**
+ * memblock_phys_alloc_range: allocate contiguous range of memory
+ * @size: size of the area in bytes
+ * @align: alignment of the area
+ * @start: minimum physical address
+ * @end: maximum physical address, can be MEMBLOCK_ALLOC_ACCESSIBLE
+ * 
+ * Returns:
+ * The physical address of allocated region's start
+ * 0 on failure
+ */
+phys_addr_t memblock_phys_alloc_range(phys_addr_t size, phys_addr_t align,
+				      phys_addr_t start, phys_addr_t end)
 {
-	if (end == MEMBLOCK_ALLOC_ACCESSIBLE)
+	if (end == MEMBLOCK_ALLOC_ACCESSIBLE || end > memblock.curr_limit)
 		end = memblock.curr_limit;
 
 	phys_addr_t base = memblock_find_free_area(size, align, start, end);
-	if (base == 0)
+	if (base == 0 || __memblock_reserve(base, size, MEMBLOCK_RSVD_KERN))
+		return 0;
+	return base;
+}
+
+/**
+ * memblock_phys_alloc_range: allocate contiguous range of memory
+ * @size: size of the area in bytes
+ * @align: alignment of the area
+ * @start: minimum physical address
+ * @end: maximum physical address, can be MEMBLOCK_ALLOC_ACCESSIBLE
+ * 
+ * Returns:
+ * A virtual address of the region's start, NULL on failure.
+ */
+void *memblock_alloc_range(phys_addr_t size, phys_addr_t align, 
+			   phys_addr_t start, phys_addr_t end)
+{
+	phys_addr_t addr = memblock_phys_alloc_range(size, align, start, end);
+	if (addr == 0)
 		return NULL;
-	if (memblock_reserve_kern(base, size) < 0)
-		return NULL;
-	return phys_to_virt(base);
+	return phys_to_virt(addr);
 }
 
 void memblock_phys_free(phys_addr_t base, phys_addr_t size)

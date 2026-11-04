@@ -119,15 +119,24 @@ static __always_inline int memblock_reserve(phys_addr_t base, phys_addr_t size)
 }
 
 /* add new memblock region reserved for kernel use */
-static __always_inline int memblock_reserve_kern(phys_addr_t base, phys_addr_t size)
+static __always_inline int memblock_reserve_kern(phys_addr_t base,
+						 phys_addr_t size)
 {
 	return __memblock_reserve(base, size, MEMBLOCK_RSVD_KERN);
 }
 
-void *memblock_phys_alloc(phys_addr_t size, phys_addr_t align,
-			  phys_addr_t start, phys_addr_t end);
+phys_addr_t memblock_phys_alloc_range(phys_addr_t size, phys_addr_t align,
+				      phys_addr_t start, phys_addr_t end);
 
-void memblock_phys_free(phys_addr_t base, phys_addr_t size);
+static __always_inline phys_addr_t memblock_phys_alloc(phys_addr_t size,
+						       phys_addr_t align)
+{
+	return memblock_phys_alloc_range(size, align, 0, 
+					 MEMBLOCK_ALLOC_ACCESSIBLE);
+}
+
+void *memblock_alloc_range(phys_addr_t size, phys_addr_t align,
+			   phys_addr_t start, phys_addr_t end);
 
 /**
  * memblock_alloc - allocate an contiguous block of memory during early boot
@@ -139,8 +148,10 @@ void memblock_phys_free(phys_addr_t base, phys_addr_t size);
  */
 static __always_inline void *memblock_alloc(phys_addr_t size, phys_addr_t align)
 {
-	return memblock_phys_alloc(size, align, 0, MEMBLOCK_ALLOC_ACCESSIBLE);
+	return memblock_alloc_range(size, align, 0, MEMBLOCK_ALLOC_ACCESSIBLE);
 }
+
+void memblock_phys_free(phys_addr_t base, phys_addr_t size);
 
 /**
  * memblock_free - free a contigous block of memory during early boot
