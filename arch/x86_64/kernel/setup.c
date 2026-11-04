@@ -44,6 +44,6 @@ void setup_arch(struct boot_info *boot)
 	memblock_set_curr_limit(EARLY_MAP_END);
 	do_alloc_test();
 
-	/* BUG: This function is commented out to avoid a #PF. it will resolved once I get to doing that. */
+	/* BUG: This function is commented out to avoid a #PF. it will be resolved once I get to doing that. */
 	//acpi_boot_init(boot->rsdp);
 }

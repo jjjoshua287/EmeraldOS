@@ -23,7 +23,7 @@ void early_init_nx(void);
 #define pmd_clear(pmd)		native_pmd_clear(pmd)
 
 #define set_pte(ptep, pte) 	native_set_pte(ptep, pte)
-#define pte_clear(pmd)		native_pte_clear(pte)
+#define pte_clear(pte)		native_pte_clear(pte)
 
 #define pgd_val(x) 	native_pgd_val(x)
 #define __pgd(x) 	native_make_pgd(x)

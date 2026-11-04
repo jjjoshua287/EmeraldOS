@@ -7,6 +7,7 @@
 
 #define PAGE_SHIFT 	12
 #define PAGE_SIZE	(1UL << PAGE_SHIFT)	/* 4 KiB */
+#define PAGE_MASK	(~(PAGE_SIZE - 1))
 #define HPAGE_SIZE 	PMD_SIZE
 
 /* Early direct map ends at 4 GiB */

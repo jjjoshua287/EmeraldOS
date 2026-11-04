@@ -97,20 +97,9 @@
 #define __NC _PAGE_NOCACHE
 #define __PS _PAGE_PS
 
-#ifndef __ASSEMBLER__
-typedef struct { pteval_t pgprot; } pgprot_t;
-#endif
-
 #define pgprot_val(x) ((x).pgprot)
 #define __pgprot(x) ((pgprot_t){ (x) })
-#define __pg(x) __pgprot(x)
-
-/* 
- * Page Tables need to have Write=1 in order for lower PTEs to be writable 
- * NOTE: columns are used for readability purposes
- */
-#define _KERNEL_PAGE_TABLE	__pg(__PP | __RW |    0 | ___A)
-#define _PAGE_TABLE		__pg(__PP | __RW | _USR | ___A)	
+#define __pg(x) __pgprot(x)	
 
 #define PAGE_NONE 		__pg(   0 |    0 |    0 | ___A |    0 |    0 |    0 | ___G)
 #define PAGE_SHARED		__pg(__PP | __RW | _USR | ___A | __NX |    0 |    0 |    0)
@@ -119,6 +108,10 @@ typedef struct { pteval_t pgprot; } pgprot_t;
 #define PAGE_COPY_EXEC		__pg(__PP |    0 | _USR | ___A |    0 |    0 |    0 |    0)
 #define PAGE_READONLY		__pg(__PP |    0 | _USR | ___A | __NX |    0 |    0 |    0)
 #define PAGE_READONLY_EXEC	__pg(__PP |    0 | _USR | ___A |    0 |    0 |    0 |    0)
+
+/* Page Tables need to have Write=1 in order for lower PTEs to be writable */
+#define _KERNEL_PAGE_TABLE	(__PP | __RW |    0 | ___A |    0 | ___D |    0 |    0)
+#define _PAGE_TABLE		(__PP | __RW | _USR | ___A |    0 | ___D |    0 |    0)
 
 #define _PAGE_KERNEL_RO		(__PP |    0 |    0 | ___A | __NX |    0 |    0 | ___G)
 #define _PAGE_KERNEL_ROX	(__PP |    0 |    0 | ___A |    0 |    0 |    0 | ___G)

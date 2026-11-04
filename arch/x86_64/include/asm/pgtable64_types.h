@@ -15,25 +15,24 @@ typedef struct { pmdval_t pmd; } pmd_t;
 typedef struct { pudval_t pud; } pud_t;
 typedef struct { pgdval_t pgd; } pgd_t;
 
-#endif	/* !__ASSEMBLER__ */
+typedef struct { pteval_t pgprot; } pgprot_t;
 
-/* entries per page directory level */
-#define PT_SIZE		4096
-#define PT_ENTRIES	512
+#endif	/* !__ASSEMBLER__ */
 
 /* Page Global Directory */
 #define PGD_SHIFT 	39
-#define PTRS_PER_PGD	PT_ENTRIES
+#define PTRS_PER_PGD	512
 
 /* Page Upper Directory */
 #define PUD_SHIFT	30
-#define PTRS_PER_PUD	PT_ENTRIES
+#define PTRS_PER_PUD	512
 
 /* Page Middle Directory */
 #define PMD_SHIFT	21
-#define PTRS_PER_PMD	PT_ENTRIES
+#define PTRS_PER_PMD	512
 
-/* Sizes and masks */
+/* entries per page directory level */
+#define PTRS_PER_PTE	512
 
 #define PMD_SIZE (1UL << PMD_SHIFT)
 #define PMD_MASK (~(PMD_SIZE - 1))
@@ -44,10 +43,10 @@ typedef struct { pgdval_t pgd; } pgd_t;
 #define PGD_SIZE (1UL << PGD_SHIFT)
 #define PGD_MASK (~(PGD_SIZE - 1))
 
+/* Memory Map */
 #define MAX_PHYSMEM_BITS 46
 #define MAXMEM (1UL << MAX_PHYSMEM_BITS)
 
-/* Memory Map */
 #define L3_START_KERNEL 510
 
 #define KERNEL_LMA 	0x0000000000100000

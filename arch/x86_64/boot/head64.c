@@ -11,7 +11,7 @@
 
 #define EARLY_FB_VIRT_BASE ((void *)0xffffffffc0000000UL)
 
-extern u64 level2_fb_pgt_va[PT_ENTRIES];
+extern u64 level2_fb_pgt_va[PTRS_PER_PMD];
 
 void early_setup_framebuffer(struct screen_info *scr)
 {
@@ -19,7 +19,7 @@ void early_setup_framebuffer(struct screen_info *scr)
 	phys_addr_t offset = scr->lfb_base - phys_base;
 	size_t hpages = ALIGN(scr->lfb_size + offset, HPAGE_SIZE) / HPAGE_SIZE;
 	
-	for (size_t i = 0; i < hpages && i < PT_ENTRIES; i++)
+	for (size_t i = 0; i < hpages && i < PTRS_PER_PMD; i++)
 		level2_fb_pgt_va[i] = (phys_base + i * HPAGE_SIZE) | __EARLY_PAGE_KERNEL_IO;
 	
 	/* Invalidate TLB */

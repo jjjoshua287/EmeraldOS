@@ -13,15 +13,10 @@
 .endm
 
 .section .head.data, "aw", @progbits
-.balign PT_SIZE
+.balign 4096
 
 .set level2_pgt_slot, level2_kernel_pgt + __EARLY_PAGE_KERNEL
 .set level3_pgt_slot, level3_kernel_pgt + __EARLY_PAGE_KERNEL
-
-.global init_top_pgt
-init_top_pgt:
-	.fill 511, 8, 0
-	.quad level3_pgt_slot
 
 .global early_top_pgt
 early_top_pgt:
@@ -29,17 +24,20 @@ early_top_pgt:
 	.fill 510, 8, 0
 	.quad level3_pgt_slot
 
+.global init_top_pgt
+init_top_pgt:
+	.fill 511, 8, 0
+	.quad level3_pgt_slot
+
 .global level3_kernel_pgt
 level3_kernel_pgt:
 	.fill L3_START_KERNEL, 8, 0
-	.quad level2_pgt_slot
-	.quad level2_fb_pgt + __EARLY_PAGE_KERNEL
+	.quad level2_kernel_pgt + _KERNEL_PAGE_TABLE
+	.quad level2_fb_pgt + _PAGE_TABLE
 
 .global level2_kernel_pgt
 level2_kernel_pgt:
-	PMD_ENTS 0, __EARLY_PAGE_KERNEL_BIG, 510
-	.quad 0
-	.quad 0
+	PMD_ENTS 0, _PAGE_KERNEL_LARGE_EXEC, 512
 
 .global level2_fb_pgt
 level2_fb_pgt:
