@@ -51,4 +51,7 @@ DECLARE_IDTENTRY(asm_exc_reserved_vector_26);
 DECLARE_IDTENTRY(asm_exc_reserved_vector_27);
 DECLARE_IDTENTRY(asm_exc_reserved_vector_31);
 
+/* Early one before full IDT is initialized */
+DECLARE_IDTENTRY(asm_exc_early_page_fault);
+
 #endif // X86_64_IDT_ENTRY_H

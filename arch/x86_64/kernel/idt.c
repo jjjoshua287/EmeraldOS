@@ -38,6 +38,13 @@ enum {
 #define ISTG(_vector, _addr, _ist)                      \
 	G(_vector, _addr, _ist + 1, GATE_INTERRUPT, DPL0, __KERNEL_CS)
 
+/* This is the early IDT before the default one (below) is initialized */
+static const struct idt_data early_idt[] = {
+	INTG(EXC_DB, asm_exc_debug),
+	SYSG(EXC_BP, asm_exc_breakpoint),
+	INTG(EXC_PF, asm_exc_early_page_fault)
+};
+
 #define IDT_TABLE_SIZE (IDT_ENTRIES * sizeof(gate_desc))
 
 #define IDT_CURRENT_GATES 32
@@ -99,6 +106,12 @@ static void idt_setup_from_table(gate_desc *idt, const struct idt_data *data, si
 void setup_idt(void)
 {
 	idt_setup_from_table(idt_table, def_idt, sizeof(def_idt) / sizeof(def_idt[0]));
+	load_idt(&idt_desc);
+}
+
+void early_idt_init(void)
+{
+	idt_setup_from_table(idt_table, early_idt, sizeof(early_idt) / sizeof(early_idt[0]));
 	load_idt(&idt_desc);
 }
 

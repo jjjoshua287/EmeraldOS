@@ -1,3 +1,4 @@
+#include <asm/setup.h>
 #include <asm/e820/api.h>
 #include <asm/page.h>
 
@@ -46,4 +47,5 @@ void setup_arch(struct boot_info *boot)
 
 	/* BUG: This function is commented out to avoid a #PF. it will be resolved once I get to doing that. */
 	//acpi_boot_init(boot->rsdp);
+	setup_idt();
 }

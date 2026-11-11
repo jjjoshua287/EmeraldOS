@@ -2,12 +2,18 @@
 #include <emerald/align.h>
 #include <emerald/runtime.h>
 #include <emerald/fbcon.h>
+#include <emerald/panic.h>
 
 #include <asm/page.h>
 #include <asm/pgtable.h>
-
+#include <asm/ptrace.h>
 #include <asm/setup.h>
-#include <asm/e820/api.h>
+
+
+void handle_early_page_fault(struct pt_regs *regs)
+{
+	panic("PAGE FAULT", regs);
+}
 
 #define EARLY_FB_VIRT_BASE ((void *)0xffffffffc0000000UL)
 
@@ -46,7 +52,7 @@ void x86_64_start_kernel(struct boot_info *boot)
 	init_fbcon(&boot->info);
 
 	setup_gdt();
-	setup_idt();
+	early_idt_init();
 
 	start_kernel(boot);
 }
