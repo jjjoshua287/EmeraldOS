@@ -1,6 +1,7 @@
 #include <asm/segment.h>
 #include <asm/desc_defs.h>
 #include <asm/pgtable_types.h>
+#include <asm/page.h>
 
 #include <emerald/init.h>
 
@@ -12,33 +13,40 @@
 	.endr
 .endm
 
-.section .head.data, "aw", @progbits
-.balign 4096
+__HEAD_DATA
+.balign 4
 
-.set level2_pgt_slot, level2_kernel_pgt + __EARLY_PAGE_KERNEL
-.set level3_pgt_slot, level3_kernel_pgt + __EARLY_PAGE_KERNEL
-
+.balign PAGE_SIZE
 .global early_top_pgt
 early_top_pgt:
-	.quad level3_pgt_slot
+	.quad level3_kernel_pgt + _KERNEL_PAGE_TABLE
 	.fill 510, 8, 0
-	.quad level3_pgt_slot
+	.quad level3_kernel_pgt + _KERNEL_PAGE_TABLE
 
+.balign PAGE_SIZE
+.global early_dynamic_pgts
+early_dynamic_pgts:
+	.fill 512*EARLY_DYNAMIC_PGTS
+
+.balign PAGE_SIZE
 .global init_top_pgt
 init_top_pgt:
 	.fill 511, 8, 0
-	.quad level3_pgt_slot
+	.quad level3_kernel_pgt + _KERNEL_PAGE_TABLE
 
+.balign PAGE_SIZE
 .global level3_kernel_pgt
 level3_kernel_pgt:
 	.fill L3_START_KERNEL, 8, 0
 	.quad level2_kernel_pgt + _KERNEL_PAGE_TABLE
 	.quad level2_fb_pgt + _PAGE_TABLE
 
+.balign PAGE_SIZE
 .global level2_kernel_pgt
 level2_kernel_pgt:
 	PMD_ENTS 0, _PAGE_KERNEL_LARGE_EXEC, 512
 
+.balign PAGE_SIZE
 .global level2_fb_pgt
 level2_fb_pgt:
 	.fill 512, 8, 0
@@ -82,7 +90,7 @@ start_64:
 	movq %rdi, %r12
 	movl $BOOT_INFO_SIZE, %ecx
 	rep movsb
-	
+
 	lgdt early_gdt_desc(%rip)
 
 	movw $__KERNEL_DS, %ax
@@ -107,7 +115,7 @@ fix_pgt:
 
 	leaq level3_kernel_pgt(%rip), %rbx
 	leaq level2_kernel_pgt(%rip), %rdx
-	orq  $__EARLY_PAGE_KERNEL, %rdx
+	orq  $_KERNEL_PAGE_TABLE, %rdx
 	movq %rdx, (%rbx, %rax, 8)
 
 	/* Map Level 4 identity slot */
@@ -117,7 +125,7 @@ fix_pgt:
 
 	leaq early_top_pgt(%rip), %rbx
 	leaq level3_kernel_pgt(%rip), %rdx
-	orq  $__EARLY_PAGE_KERNEL, %rdx
+	orq  $_KERNEL_PAGE_TABLE, %rdx
 	movq %rdx, (%rbx, %rax, 8)
 
 	/* Check if we were relocated */

@@ -52,4 +52,8 @@ typedef struct { pteval_t pgprot; } pgprot_t;
 #define KERNEL_LMA 	0x0000000000100000
 #define KERNEL_VMA 	0xffffffff80000000
 
+#define KERNEL_IMAGE_MAX_VIRT	(512 * 1024 * 1024)	/* 512 MiB */
+
+#define EARLY_DYNAMIC_PGTS 64
+
 #endif	/* ASM_X86_64_PGTABLE_64_TYPES_H */
