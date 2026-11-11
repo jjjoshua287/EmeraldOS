@@ -21,8 +21,10 @@ SECTIONS
     	. = KERNEL_VMA + .;
     	__kernel_virt_start = .;
 
-    	.text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VMA) { 
+    	.text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VMA) {
+	    _text = .;
     	    *(.text .text.*)
+	    _text_end = .;
     	}
 
     	.rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_VMA) {
@@ -51,6 +53,7 @@ SECTIONS
         	. += KERNEL_STACK_SIZE;
         	kernel_stack_top = .;
     	}
+	__end = .;
 
     	. = ALIGN(4K);
     	__kernel_virt_end = .;

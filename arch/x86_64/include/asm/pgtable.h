@@ -8,6 +8,7 @@
 extern pud_t level3_kernel_pgt[512];
 extern pmd_t level2_kernel_pgt[512];
 extern pgd_t init_top_pgt[];
+extern pgd_t early_top_pgt[];
 
 #define swapper_pgd_dir init_top_pgt
 
