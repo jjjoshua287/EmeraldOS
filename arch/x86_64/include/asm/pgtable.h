@@ -12,7 +12,7 @@ extern pgd_t early_top_pgt[];
 
 #define swapper_pgd_dir init_top_pgt
 
-void early_init_nx(void);
+bool init_nx(void);
 
 #define set_pgd(pgdp, pgd) 	native_set_pgd(pgdp, pgd)
 #define pgd_clear(pgd)		native_pgd_clear(pgd)

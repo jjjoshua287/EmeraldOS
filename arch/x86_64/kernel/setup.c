@@ -1,5 +1,6 @@
 #include <asm/setup.h>
 #include <asm/e820/api.h>
+#include <asm/pgtable.h>
 #include <asm/page.h>
 
 #include <emerald/types.h>
@@ -28,8 +29,17 @@ static inline void do_alloc_test()
 	printk("Allocated %d bytes at %p\n\n", 0xf, alloc);
 }
 
+static inline void report_nx()
+{
+	if (init_nx())
+		printk("NX: OK\n");
+	else
+		printk("NX Support Missing!\n");
+}
+
 void setup_arch(struct boot_info *boot) 
 {
+	report_nx();
 	do_early_reserves(boot);
 	e820_memory_setup(&boot->mem);
 

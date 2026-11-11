@@ -10,7 +10,7 @@
 
 #include "tests.h"
 
-int kernel_main(struct boot_info *boot)
+int kernel_main()
 {
 	printk("EmeraldOS Kernel v%s\n\n", KERNEL_VERSION);
 	printk("Hello from ELF Kernel!\n");
@@ -18,10 +18,6 @@ int kernel_main(struct boot_info *boot)
 	
 	#if CFG_TEST
 	run_dev_tests();
-	#endif
-
-	#if CFG_PANIC
-	BUG();
 	#endif
 
 	while (1);
@@ -32,8 +28,6 @@ int kernel_main(struct boot_info *boot)
 int start_kernel(struct boot_info *boot)
 {
 	setup_arch(boot);
-	printk("e820 entries: %u\n", boot->mem.nr_entries);
-
-	kernel_main(boot);
+	kernel_main();
 	return 0;
 }

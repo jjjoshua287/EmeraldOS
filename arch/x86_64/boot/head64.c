@@ -9,7 +9,7 @@
 #include <asm/ptrace.h>
 #include <asm/setup.h>
 
-
+/* NOTE: This may be moved to arch/x86_64/mm/fault.c */
 void handle_early_page_fault(struct pt_regs *regs)
 {
 	panic("PAGE FAULT", regs);
@@ -47,12 +47,11 @@ int start_kernel(struct boot_info *boot);
 /* architecture-specific entry point for kernel */
 void x86_64_start_kernel(struct boot_info *boot)
 {
-	early_init_nx();
-	fixup_boot_info(boot);
-	init_fbcon(&boot->info);
-
 	setup_gdt();
 	early_idt_init();
+
+	fixup_boot_info(boot);
+	init_fbcon(&boot->info);
 
 	start_kernel(boot);
 }
