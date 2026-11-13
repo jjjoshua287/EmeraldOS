@@ -24,11 +24,6 @@ early_top_pgt:
 	.quad level3_kernel_pgt + _KERNEL_PAGE_TABLE
 
 .balign PAGE_SIZE
-.global early_dynamic_pgts
-early_dynamic_pgts:
-	.fill 512*EARLY_DYNAMIC_PGTS
-
-.balign PAGE_SIZE
 .global init_top_pgt
 init_top_pgt:
 	.fill 511, 8, 0
@@ -174,3 +169,10 @@ enter_kernel:
 	movabsq $x86_64_start_kernel, %rax
 	call *%rax
 	ud2
+
+.section .bss
+.balign PAGE_SIZE
+
+.global early_dynamic_pgts
+early_dynamic_pgts:
+	.fill 512*EARLY_DYNAMIC_PGTS
