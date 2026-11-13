@@ -39,7 +39,9 @@ static inline void report_nx()
 
 void setup_arch(struct boot_info *boot) 
 {
+	setup_idt();
 	report_nx();
+
 	do_early_reserves(boot);
 	e820_memory_setup(&boot->mem);
 
@@ -51,11 +53,9 @@ void setup_arch(struct boot_info *boot)
 		max_low_pfn = max_pfn;
 
 	e820_memblock_setup();
-	
 	memblock_set_curr_limit(EARLY_MAP_END);
 	do_alloc_test();
 
 	/* BUG: This function is commented out to avoid a #PF. it will be resolved once I get to doing that. */
 	//acpi_boot_init(boot->rsdp);
-	setup_idt();
 }

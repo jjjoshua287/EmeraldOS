@@ -3,10 +3,9 @@
 
 #include <emerald/runtime.h>
 
-/* setup_gdt and setup_idt are called by the architecture-specific entry point */
+/* setup_gdt is called by x86_64_start_kernel */
 void setup_gdt(void);
 void setup_idt(void);
-void early_idt_init(void);
 
 void setup_arch(struct boot_info *boot);
 
