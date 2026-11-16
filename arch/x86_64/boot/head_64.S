@@ -169,10 +169,3 @@ enter_kernel:
 	movabsq $x86_64_start_kernel, %rax
 	call *%rax
 	ud2
-
-.section .bss
-.balign PAGE_SIZE
-
-.global early_dynamic_pgts
-early_dynamic_pgts:
-	.fill 512*EARLY_DYNAMIC_PGTS
