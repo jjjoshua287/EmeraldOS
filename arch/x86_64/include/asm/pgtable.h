@@ -10,6 +10,8 @@ extern pmd_t level2_kernel_pgt[512];
 extern pgd_t init_top_pgt[];
 extern pgd_t early_top_pgt[];
 
+extern bool direct_map_ready;
+
 #define swapper_pgd_dir init_top_pgt
 
 bool init_nx(void);
@@ -178,7 +180,7 @@ static inline bool pmd_dirty(pmd_t pmd)
 	return pmd_flags(pmd) & _PAGE_DIRTY;
 }
 
-static inline bool pmd_huge(pmd_t pmd)
+static inline bool pmd_leaf(pmd_t pmd)
 {
 	return pmd_flags(pmd) & _PAGE_PS;
 }
@@ -198,7 +200,7 @@ static inline bool pud_writable(pud_t pud)
 	return pud_flags(pud) & _PAGE_RW;
 }
 
-static inline bool pud_huge(pud_t pud)
+static inline bool pud_leaf(pud_t pud)
 {
 	return pud_flags(pud) & _PAGE_PS;
 }
@@ -316,6 +318,11 @@ static inline pte_t pfn_pte(unsigned long pfn, pgprot_t prot)
 static inline pmd_t pfn_pmd(unsigned long pfn, pgprot_t prot)
 {
 	return __pmd(((pmdval_t)pfn << PTE_PFN_SHIFT) | pgprot_val(prot));
+}
+
+static inline pud_t pfn_pud(unsigned long pfn, pgprot_t prot)
+{
+	return __pud(((pmdval_t)pfn << PTE_PFN_SHIFT) | pgprot_val(prot));
 }
 
 static inline pgprot_t pgprot_set(pgprot_t prot, pteval_t bits)
