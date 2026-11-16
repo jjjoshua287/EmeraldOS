@@ -7,7 +7,7 @@
 #include <emerald/types.h>
 #include <emerald/panic.h>
 
-void *alloc_pgt(void);
+#include "mm_internal.h"
 
 bool init_nx(void)
 {
