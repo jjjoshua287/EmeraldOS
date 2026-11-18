@@ -12,9 +12,7 @@
 
 int kernel_main()
 {
-	printk("EmeraldOS Kernel v%s\n\n", KERNEL_VERSION);
-	printk("Hello from ELF Kernel!\n");
-	printk("Hello from virtual address: %#p", &kernel_main);
+	printk("\nEmeraldOS Kernel v%s\n\n", KERNEL_VERSION);
 	
 	#if CFG_TEST
 	run_dev_tests();

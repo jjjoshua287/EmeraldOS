@@ -47,7 +47,6 @@ KERNEL_TARGET = emeraldos.elf
 KERNEL_BUILD = $(BUILD)/kernel
 
 KERNEL_CFLAGS := $(CFLAGS)
-KERNEL_CFLAGS += -DCFG_INIT_FBCON_EARLY
 KERNEL_CFLAGS += -mgeneral-regs-only -fno-stack-protector
 KERNEL_CFLAGS += -mcmodel=kernel -fno-pic
 
