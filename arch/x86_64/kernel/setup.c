@@ -23,12 +23,6 @@ static void do_early_reserves(struct boot_info *boot)
 	memblock_reserve_kern((phys_addr_t)__kernel_start, (phys_addr_t)(__kernel_end - __kernel_start));
 }
 
-static inline void do_alloc_test()
-{
-	void *alloc = memblock_alloc(0xf, PAGE_SIZE);
-	printk("Allocated %d bytes at %p\n\n", 0xf, alloc);
-}
-
 static inline void report_nx()
 {
 	if (init_nx())
@@ -53,9 +47,8 @@ void setup_arch(struct boot_info *boot)
 		max_low_pfn = max_pfn;
 
 	e820_memblock_setup();
+	init_mem_mapping();
 	memblock_set_curr_limit(EARLY_MAP_END);
-	do_alloc_test();
 
-	/* BUG: This function is commented out to avoid a #PF. it will be resolved once I get to doing that. */
-	//acpi_boot_init(boot->rsdp);
+	acpi_boot_init(boot->rsdp);
 }

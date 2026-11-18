@@ -1,8 +1,11 @@
 #include <acpi/acpi.h>
 
+#include <asm/page.h>
+
 #include <emerald/runtime.h>
 #include <emerald/types.h>
 #include <emerald/string.h>
+#include <emerald/printk.h>
 
 /* this is a generic function */
 static bool __acpi_checksum(void *ptr, size_t len)
@@ -15,7 +18,10 @@ static bool __acpi_checksum(void *ptr, size_t len)
     	return sum == 0;
 }
 
-#define acpi_validate_table(hdr) __acpi_checksum((hdr), (hdr)->length)
+static bool acpi_validate_table(struct acpi_table_header *virt_hdr)
+{
+	return __acpi_checksum(virt_hdr, virt_hdr->length);
+}
 
 static bool validate_rsdp(struct acpi_table_rsdp *rsdp)
 {
@@ -34,14 +40,23 @@ static bool validate_rsdp(struct acpi_table_rsdp *rsdp)
 void acpi_boot_init(void *sys_desc_ptr)
 {
         struct acpi_table_rsdp *rsdp = (struct acpi_table_rsdp *)sys_desc_ptr;
-        if (validate_rsdp(rsdp))
-                return;
- 
-        struct acpi_table_header *hdr;
-	if (rsdp->revision >= 2 && rsdp->xsdt_physical_addr != 0)
-		hdr = (struct acpi_table_header *)rsdp->xsdt_physical_addr;
-	else
-		hdr = (struct acpi_table_header *)(uintptr_t)rsdp->rsdt_physical_addr;
-	if (!acpi_validate_table(hdr))
+        if (!validate_rsdp(rsdp)) {
+                printk("ACPI: Failed to initialize; Reason: Invalid RSDP\n");
 		return;
+	}
+
+	phys_addr_t paddr;
+	if (rsdp->revision >= 2 && rsdp->xsdt_physical_addr != 0)
+		paddr = rsdp->xsdt_physical_addr;
+	else
+		paddr = (phys_addr_t)rsdp->rsdt_physical_addr;
+
+	struct acpi_table_header *hdr = phys_to_virt(paddr);
+	if (!acpi_validate_table(hdr)) {
+		printk("ACPI: Failed to find System Descriptor Table\n");
+		return;
+	}
+	
+	const char *tbl_str = (rsdp->revision >= 2) ? "XSDT" : "RSDT";
+	printk("ACPI: Successfully located %s\n", tbl_str);
 }
