@@ -15,6 +15,7 @@ extern bool direct_map_ready;
 #define swapper_pgd_dir init_top_pgt
 
 bool init_nx(void);
+void init_mem_mapping(void);
 
 #define set_pgd(pgdp, pgd) 	native_set_pgd(pgdp, pgd)
 #define pgd_clear(pgd)		native_pgd_clear(pgd)
@@ -343,6 +344,11 @@ static inline pgprot_t pgprot_split_large(pgprot_t prot)
 	if (pgprot_val(prot) & _PAGE_PAT_LARGE)
 		v |= _PAGE_PAT;
 	return __pgprot(v);
+}
+
+static inline pgd_t *kernel_pgd(void)
+{
+	return (pgd_t *)((unsigned long)swapper_pgd_dir + KERNEL_VMA);
 }
 
 #endif	/* ASM_X86_64_PGTABLE_H */

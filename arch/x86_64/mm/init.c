@@ -1,4 +1,6 @@
 #include <asm/pgtable.h>
+#include <asm/e820/api.h>
+#include <asm/tlb.h>
 
 #include <emerald/types.h>
 #include <emerald/string.h>
@@ -6,6 +8,7 @@
 #include <emerald/align.h>
 #include <emerald/minmax.h>
 #include <emerald/memblock.h>
+#include <emerald/pfn.h>
 
 // included for debugging purposes
 #include <emerald/printk.h>
@@ -22,7 +25,7 @@ static unsigned int next_early_pgt;
 
 unsigned long min_pfn_mapped = 0;
 unsigned long max_low_pfn_mapped = 0;
-unsigned long max_pfn_mapped = (phys_addr_t)EARLY_MAP_END >> PAGE_SHIFT;
+unsigned long max_pfn_mapped = 0;
 
 bool direct_map_ready = false;
 
@@ -68,16 +71,47 @@ phys_addr_t init_memory_mapping(phys_addr_t start, phys_addr_t end,
 				pgprot_t prot)
 {
 	phys_addr_t ret = 0;
-	printk("init_memory_mapping: [mem 0x%016lx-0x%016lx]\n", 
-		start, end - 1);
 
 	start = ALIGN_DOWN(start, HPAGE_SIZE);
 	end = ALIGN(end, HPAGE_SIZE);
+	if (end <= start)
+		return end >> PAGE_SHIFT;
 
-	while (start < end)
-		ret = init_kernel_phys_mapping(start, end, page_size_mask, prot);
+	printk("init_memory_mapping: [mem 0x%016lx-0x%016lx]\n", 
+		start, end - 1);
+
+	ret = init_kernel_phys_mapping(start, end, page_size_mask, prot);
 	
 	unsigned long pfn = ret >> PAGE_SHIFT;
 	update_mapped_pfn_ranges(start >> PAGE_SHIFT, pfn);
 	return pfn;
+}
+
+static void init_mem_map(const struct e820_table *table)
+{
+	for (int i = 0; i < table->nr_entries; i++) {
+		const struct e820_entry *entry = &table->entries[i];
+		if (entry->type != E820_TYPE_RAM && entry->type != E820_TYPE_ACPI)
+			continue;
+
+		phys_addr_t start = max(entry->addr, PFN_PHYS(max_pfn_mapped));
+		phys_addr_t end = entry->addr + entry->size;
+		init_memory_mapping(start, end, PAGE_KERNEL);
+	}
+}
+
+void init_mem_mapping()
+{
+	unsigned long end = max_pfn << PAGE_SHIFT;
+
+	/* the ISA range is always mapped */
+	init_memory_mapping(0, ISA_END_ADDRESS, PAGE_KERNEL);
+	init_mem_map(e820_table);
+
+	if (max_pfn > max_low_pfn)
+		max_low_pfn = max_pfn;
+	native_write_cr3((unsigned long)swapper_pgd_dir);
+	flush_tlb();
+	
+	direct_map_ready = true;
 }

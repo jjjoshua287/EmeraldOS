@@ -146,7 +146,6 @@ phys_addr_t map_pud_range(pud_t *pud_page, phys_addr_t paddr, phys_addr_t paddr_
 			paddr_last = paddr_next;
 			continue;
 		}
-
 		pmd = alloc_pgt();
 		paddr_last = map_pmd_range(pmd, paddr, paddr_end, page_size_mask, prot);
 		pud_populate_phys(pud, table_pa(pmd));
@@ -164,7 +163,7 @@ phys_addr_t init_kernel_phys_mapping(phys_addr_t paddr_start, phys_addr_t paddr_
 	vaddr_end = (unsigned long)__va(paddr_end);
 
 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
-		pgd_t *pgd = init_top_pgt + pgd_index(vaddr);
+		pgd_t *pgd = kernel_pgd() + pgd_index(vaddr);
 		pud_t *pud;
 
 		vaddr_next = (vaddr & PGD_MASK) + PGD_SIZE;
