@@ -7,7 +7,6 @@
 #include <asm/pgtable.h>
 #include <asm/setup.h>
 
-unsigned int next_early_pgt = 0;
 pmdval_t early_pmd_flags = _PAGE_KERNEL_LARGE & ~(_PAGE_GLOBAL | _PAGE_NX);
 
 #define EARLY_FB_VIRT_BASE ((void *)0xffffffffc0000000UL)

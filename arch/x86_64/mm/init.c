@@ -1,5 +1,7 @@
 #include <asm/pgtable.h>
 #include <asm/e820/api.h>
+#include <asm/processor.h>
+#include <asm/cpuid.h>
 #include <asm/tlb.h>
 
 #include <emerald/types.h>
@@ -16,9 +18,9 @@
 #include "mm_internal.h"
 
 /* bits supported by the hardware */
-pteval_t __supported_pte_mask = ~0;
+pteval_t __supported_pte_mask = (~0 & ~_PAGE_GLOBAL);
 /* bits allowed in normal kernel mappings */
-pteval_t __default_kernel_pte_mask = ~0;
+pteval_t __default_kernel_pte_mask;
 
 static pmd_t early_dynamic_pgts[EARLY_DYNAMIC_PGTS][PTRS_PER_PMD] __aligned(PAGE_SIZE);
 static unsigned int next_early_pgt;
@@ -91,7 +93,7 @@ static void init_mem_map(const struct e820_table *table)
 {
 	for (int i = 0; i < table->nr_entries; i++) {
 		const struct e820_entry *entry = &table->entries[i];
-		if (entry->type != E820_TYPE_RAM && entry->type != E820_TYPE_ACPI)
+		if (entry->type != E820_TYPE_RAM)
 			continue;
 
 		phys_addr_t start = max(entry->addr, PFN_PHYS(max_pfn_mapped));
@@ -100,9 +102,34 @@ static void init_mem_map(const struct e820_table *table)
 	}
 }
 
+static void probe_page_size_mask(void)
+{
+	/* Enable PGE if available */
+	u32 edx = cpuid_edx(0x1);
+	if (edx & CPUID_EDX_PGE) {
+		native_cr4_set_bits(X86_CR4_PGE);
+		__supported_pte_mask |= _PAGE_GLOBAL;
+	}
+
+	/* everything is supported by default */
+	__default_kernel_pte_mask = __supported_pte_mask;
+	
+	/* enable 1 GiB pages if available
+	u32 eax = cpuid_eax(CPUID_LEAF_BASE);
+	if (eax >= CPUID_LEAF_EXT1) {
+		edx = cpuid_edx(CPUID_LEAF_EXT1);
+		if (edx & CPUID_EDX_1GB_PAGE) {
+			printk("Using 1 GB pages for direct mapping\n");
+			page_size_mask |= (1UL << PG_LEVEL_1G);
+		}
+	}
+	*/
+}
+
 void init_mem_mapping()
 {
 	unsigned long end = max_pfn << PAGE_SHIFT;
+	probe_page_size_mask();
 
 	/* the ISA range is always mapped */
 	init_memory_mapping(0, ISA_END_ADDRESS, PAGE_KERNEL);
@@ -114,4 +141,7 @@ void init_mem_mapping()
 	flush_tlb();
 	
 	direct_map_ready = true;
+	printk("early_dynamic_pgt usage: %d/%d consumed, %d remaining\n",
+		next_early_pgt, EARLY_DYNAMIC_PGTS, 
+		EARLY_DYNAMIC_PGTS - next_early_pgt);
 }

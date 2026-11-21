@@ -11,11 +11,10 @@
 
 bool init_nx(void)
 {
-	u32 nx_leaf = 0x80000001;
-	u32 eax = cpuid_eax(0x80000000);
+	u32 eax = cpuid_eax(CPUID_LEAF_BASE);
 	
-	if (eax >= nx_leaf) {
-		u32 edx = cpuid_edx(nx_leaf);
+	if (eax >= CPUID_LEAF_EXT1) {
+		u32 edx = cpuid_edx(CPUID_LEAF_EXT1);
 		if (edx & CPUID_EDX_NX) {
 			wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_NXE);
 			return true;
