@@ -87,11 +87,35 @@ static __always_inline unsigned long long native_read_cr4(void)
     	return val;
 }
 
+static __always_inline void native_write_cr4(unsigned long val)
+{
+	asm volatile("mov %0, %%cr4" :: "r"(val) : "memory");
+}
+
+static __always_inline void native_cr4_set_bits(unsigned long mask)
+{
+	native_write_cr4((native_read_cr4() | mask));
+}
+
+static __always_inline void native_cr4_clear_bits(unsigned long mask)
+{
+	native_write_cr4((native_read_cr4() & ~mask));
+}
+
 static __always_inline unsigned long long native_read_cr8(void)
 {
     	unsigned long long val;
     	__asm__ volatile("mov %%cr8, %0" : "=r"(val));
     	return val;
 }
+
+#define X86_CR4_VME 	0		/* Virtual-8086 Mode Extensions */
+#define X86_CR4_PVI	(1UL << 1)	/* Protected-Mode Virtual Interrupts */
+#define X86_CR4_TSD	(1UL << 2)	/* Time Stamp Disable */
+#define X86_CR4_DE	(1UL << 3)	/* Debugging Extensions */
+#define X86_CR4_PSE	(1UL << 4)	/* 4 MiB Pages in 32-bit paging (ignored in x86_64) */
+#define X86_CR4_PAE	(1UL << 5)	/* Physical Address Extension */
+#define X86_CR4_MCE	(1UL << 6)	/* Machine Check Exception */
+#define X86_CR4_PGE	(1UL << 7)	/* Page Global Enable */
 
 #endif // X86_64_PROCESSOR_H

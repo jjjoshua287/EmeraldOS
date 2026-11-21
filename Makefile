@@ -108,7 +108,7 @@ run: esp
 	qemu-system-x86_64	\
 		-bios /usr/share/edk2/ovmf/OVMF_CODE.fd	\
 		-drive format=raw,file=fat:rw:esp/	\
-		-vga std -net none
+		-vga std -net none -cpu qemu64,+pdpe1gb
 
 debug: esp
 	qemu-system-x86_64	\

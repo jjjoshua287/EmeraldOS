@@ -3,7 +3,12 @@
 
 #include <emerald/types.h>
 
-#define CPUID_EDX_NX (1U << 20)
+#define CPUID_LEAF_BASE 0x80000000
+#define CPUID_LEAF_EXT1 0x80000001
+
+#define CPUID_EDX_PGE		(1U << 13)
+#define CPUID_EDX_NX 		(1U << 20)
+#define CPUID_EDX_1GB_PAGE	(1U << 26)
 
 static inline void native_cpuid(u32 *eax, u32 *ebx, u32 *ecx, u32 *edx)
 {
