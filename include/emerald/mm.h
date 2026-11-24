@@ -7,7 +7,7 @@
  * convert between pages and MB.
  * 20 is the shift for 1MB (2^20 = 1MB) 
  */
-#define PAGES_TO_MB(pages)  ((pages >> (20 - PAGE_SHIFT)))
+#define PAGES_TO_MB(pages)  (((pages) >> (20 - PAGE_SHIFT)))
 #define MB_TO_PAGES(mb)     ((mb) << (20 - PAGE_SHIFT))
 
 /* align a pointer to the next page boundary */

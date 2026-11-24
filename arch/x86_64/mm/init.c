@@ -3,6 +3,7 @@
 #include <asm/processor.h>
 #include <asm/cpuid.h>
 #include <asm/tlb.h>
+#include <asm/bug.h>
 
 #include <emerald/types.h>
 #include <emerald/string.h>
@@ -11,6 +12,7 @@
 #include <emerald/minmax.h>
 #include <emerald/memblock.h>
 #include <emerald/pfn.h>
+#include <emerald/mm.h>
 
 // included for debugging purposes
 #include <emerald/printk.h>
@@ -29,6 +31,8 @@ unsigned long min_pfn_mapped = 0;
 unsigned long max_low_pfn_mapped = 0;
 unsigned long max_pfn_mapped = 0;
 
+/* 1 GiB Pages supported */
+bool huge_pages = false;
 bool direct_map_ready = false;
 
 // allocate a new page table before the direct map is built
@@ -55,6 +59,36 @@ void *alloc_pgt(void)
 	return pgt;
 }
 
+struct map_range {
+	phys_addr_t start;
+	phys_addr_t end;
+	unsigned long page_size_mask;
+};
+
+/* split a range into a page and tell the caller if it needs split again */
+static bool split_range(struct map_range *map)
+{
+	unsigned long page_size = PAGE_SIZE;
+	unsigned long size = map->end - map->start;
+
+	if (huge_pages && size >= PUD_SIZE && IS_ALIGNED(map->start, PUD_SIZE)) {
+		page_size = PUD_SIZE;
+		map->page_size_mask = (1UL << PG_LEVEL_1G);
+	} else if (size >= PMD_SIZE && IS_ALIGNED(map->start, PMD_SIZE)) {
+		page_size = PMD_SIZE;
+		map->page_size_mask = (1UL << PG_LEVEL_2M);
+	} else {
+		page_size = size;
+		map->page_size_mask = (1UL << PG_LEVEL_4K);
+	}
+
+	if (IS_ALIGNED(size, page_size))
+		return false;
+	
+	map->end = ALIGN_DOWN(map->end, page_size);
+	return true;
+}
+
 void update_mapped_pfn_ranges(unsigned long start_pfn, unsigned long end_pfn)
 {
 	if (end_pfn > max_pfn_mapped)
@@ -73,38 +107,43 @@ phys_addr_t init_memory_mapping(phys_addr_t start, phys_addr_t end,
 				pgprot_t prot)
 {
 	phys_addr_t ret = 0;
-
-	start = ALIGN_DOWN(start, HPAGE_SIZE);
-	end = ALIGN(end, HPAGE_SIZE);
-	if (end <= start)
-		return end >> PAGE_SHIFT;
+	struct map_range map = { start, end, page_size_mask };
 
 	printk("init_memory_mapping: [mem 0x%016lx-0x%016lx]\n", 
 		start, end - 1);
 
-	ret = init_kernel_phys_mapping(start, end, page_size_mask, prot);
-	
-	unsigned long pfn = ret >> PAGE_SHIFT;
+	bool split = split_range(&map);
+	do {
+		map.start = init_kernel_phys_mapping(map.start, map.end,
+					       	     map.page_size_mask, 
+						     prot);
+		if (split) {
+			map.end = end;
+			split = split_range(&map);
+		}
+	} while (split);
+
+	unsigned long pfn = map.start >> PAGE_SHIFT;
 	update_mapped_pfn_ranges(start >> PAGE_SHIFT, pfn);
 	return pfn;
 }
 
-static void init_mem_map(const struct e820_table *table)
+static void init_mem_map(void)
 {
-	for (int i = 0; i < table->nr_entries; i++) {
-		const struct e820_entry *entry = &table->entries[i];
-		if (entry->type != E820_TYPE_RAM)
-			continue;
-
-		phys_addr_t start = max(entry->addr, PFN_PHYS(max_pfn_mapped));
-		phys_addr_t end = entry->addr + entry->size;
-		init_memory_mapping(start, end, PAGE_KERNEL);
+	struct memblock_region *rgn;
+	for_each_mem_region(rgn) {
+		phys_addr_t start = PAGE_ALIGN(rgn->base);
+		phys_addr_t rend = rgn->base + rgn->size;
+		phys_addr_t end = PAGE_ALIGN_DOWN(rend);
+		
+		if (end > start)
+			init_memory_mapping(start, end, PAGE_KERNEL);
 	}
 }
 
 static void probe_page_size_mask(void)
 {
-	/* Enable PGE if available */
+	/* Enable Global pages if available */
 	u32 edx = cpuid_edx(0x1);
 	if (edx & CPUID_EDX_PGE) {
 		native_cr4_set_bits(X86_CR4_PGE);
@@ -114,16 +153,16 @@ static void probe_page_size_mask(void)
 	/* everything is supported by default */
 	__default_kernel_pte_mask = __supported_pte_mask;
 	
-	/* enable 1 GiB pages if available
+	/* enable 1 GiB pages if available */
 	u32 eax = cpuid_eax(CPUID_LEAF_BASE);
 	if (eax >= CPUID_LEAF_EXT1) {
 		edx = cpuid_edx(CPUID_LEAF_EXT1);
 		if (edx & CPUID_EDX_1GB_PAGE) {
-			printk("Using 1 GB pages for direct mapping\n");
+			printk("INFO: Using 1 GB pages for direct mapping\n");
 			page_size_mask |= (1UL << PG_LEVEL_1G);
+			huge_pages = true;
 		}
 	}
-	*/
 }
 
 void init_mem_mapping()
@@ -133,7 +172,7 @@ void init_mem_mapping()
 
 	/* the ISA range is always mapped */
 	init_memory_mapping(0, ISA_END_ADDRESS, PAGE_KERNEL);
-	init_mem_map(e820_table);
+	init_mem_map();
 
 	if (max_pfn > max_low_pfn)
 		max_low_pfn = max_pfn;

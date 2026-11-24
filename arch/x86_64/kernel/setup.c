@@ -46,9 +46,10 @@ void setup_arch(struct boot_info *boot)
 	else
 		max_low_pfn = max_pfn;
 
-	e820_memblock_setup();
+	e820_memblock_setup();	
 	init_mem_mapping();
 	memblock_set_curr_limit(EARLY_MAP_END);
 
-	acpi_boot_init(boot->rsdp);
+	/* ACPI isn't in the direct map yet, commented out to avoid a #PF */
+	//acpi_boot_init(boot->rsdp);
 }
